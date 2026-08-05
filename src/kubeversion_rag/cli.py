@@ -368,6 +368,7 @@ def cmd_train_crossencoder(args: argparse.Namespace, config: Config) -> int:
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
         negatives_per_positive=args.negatives,
+        random_negatives_per_positive=args.random_negatives,
     )
     return 0
 
@@ -483,7 +484,17 @@ def build_parser() -> argparse.ArgumentParser:
     cross.add_argument("--epochs", type=int, default=2)
     cross.add_argument("--batch-size", type=int, default=16)
     cross.add_argument("--learning-rate", type=float, default=2e-5)
-    cross.add_argument("--negatives", type=int, default=4)
+    cross.add_argument(
+        "--negatives", type=int, default=4, help="mined same-family hard negatives per positive"
+    )
+    cross.add_argument(
+        "--random-negatives",
+        type=int,
+        default=4,
+        help="randomly sampled negatives per positive. Not optional in practice: without "
+        "them the reranker is uncalibrated on the unrelated chunks that dominate the "
+        "candidates it actually sees, and measurably makes retrieval worse.",
+    )
     cross.set_defaults(func=cmd_train_crossencoder)
 
     return parser
