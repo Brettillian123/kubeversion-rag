@@ -155,7 +155,11 @@ kvrag train crossencoder --epochs 2 --batch-size 32
 kvrag eval run --all --write-results
 ```
 
-The middle step is not optional and not cosmetic. It re-mines the reranker's training
+Measured on an RTX 4060 Laptop (8 GB): **42 minutes** — 14 for the bi-encoder, 30
+seconds to mine, 27 for the cross-encoder. The reranker costs twice the bi-encoder and,
+on the large test split, buys nothing; see below.
+
+The mining step is not optional and not cosmetic. It re-mines the reranker's training
 negatives from what the *fine-tuned* bi-encoder actually returns, because a reranker
 trained on any other distribution measurably makes retrieval worse — see
 [`docs/RESULTS.md`](docs/RESULTS.md). `kvrag train crossencoder` refuses to run if more
