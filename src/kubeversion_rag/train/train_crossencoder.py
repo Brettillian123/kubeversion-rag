@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ..models import Corpus, Example
-from . import describe_device, device_kwargs, warmup_kwargs
+from . import describe_device, device_kwargs, disable_model_card_widgets, warmup_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -106,6 +106,7 @@ def train_crossencoder(
         )
 
     model = CrossEncoder(base_model, num_labels=1)
+    disable_model_card_widgets(model)
     # Class imbalance is real here (one positive to N negatives), and an unweighted
     # BCE quietly learns to predict "irrelevant" for everything, which looks like a
     # working model until you inspect the score distribution.
@@ -129,7 +130,7 @@ def train_crossencoder(
         eval_strategy="epoch" if dev_rows else "no",
         save_strategy="epoch",
         save_total_limit=1,
-        logging_steps=50,
+        logging_steps=10,
         report_to=[],
         seed=seed,
     )

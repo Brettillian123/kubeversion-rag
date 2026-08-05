@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ..models import Corpus, Example
-from . import describe_device, device_kwargs, warmup_kwargs
+from . import describe_device, device_kwargs, disable_model_card_widgets, warmup_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -75,7 +75,13 @@ def _build_ir_evaluator(corpus: Corpus, examples: Sequence[Example], query_prefi
     preserving the discrimination that matters -- distinguishing the right version of
     a section from the wrong one.
     """
-    from sentence_transformers.evaluation import InformationRetrievalEvaluator
+    # The canonical path, not the `sentence_transformers.evaluation` shim. The shim is
+    # deprecated *and* slow: importing through it took 84s here versus 20s direct,
+    # because it drags in a re-export chain. Silent minutes before the first training
+    # step look exactly like a hang.
+    from sentence_transformers.sentence_transformer.evaluation import (
+        InformationRetrievalEvaluator,
+    )
 
     queries: dict[str, str] = {}
     relevant: dict[str, set[str]] = {}
@@ -142,6 +148,7 @@ def train_biencoder(
 
     dataset = Dataset.from_list(rows)
     model = SentenceTransformer(base_model)
+    disable_model_card_widgets(model)
     loss = MultipleNegativesRankingLoss(model)
     evaluator = _build_ir_evaluator(corpus, dev_examples, query_prefix)
 
@@ -161,7 +168,9 @@ def train_biencoder(
         eval_strategy="epoch" if evaluator else "no",
         save_strategy="epoch",
         save_total_limit=1,
-        logging_steps=50,
+        # Frequent enough to see a stall within a minute. With tqdm disabled for
+        # non-TTY output this is the only progress signal there is.
+        logging_steps=10,
         report_to=[],
         seed=20260805,
     )
