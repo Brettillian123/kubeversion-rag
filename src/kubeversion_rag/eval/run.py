@@ -120,6 +120,7 @@ def run_ablation(
             default_cross_encoder=config.retrieval.cross_encoder,
             query_prefix=config.retrieval.query_prefix,
             embed_batch_size=config.retrieval.embed_batch_size,
+            max_seq_length=config.retrieval.max_seq_length,
             force_reembed=force_reembed,
         )
         result = evaluate_pipeline(pipeline, examples, corpus)

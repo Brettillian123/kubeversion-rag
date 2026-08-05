@@ -247,6 +247,7 @@ def build_pipeline(
     default_cross_encoder: str,
     query_prefix: str,
     embed_batch_size: int = 32,
+    max_seq_length: int | None = None,
     force_reembed: bool = False,
 ) -> ResolvedPipeline:
     """Load exactly the components a configuration needs, and nothing more."""
@@ -259,7 +260,10 @@ def build_pipeline(
         if fell_back:
             resolved.degraded.append(f"bi-encoder fell back to {default_bi_encoder}")
         resolved.embedder = Embedder(
-            bi_encoder_path, query_prefix=query_prefix, batch_size=embed_batch_size
+            bi_encoder_path,
+            query_prefix=query_prefix,
+            batch_size=embed_batch_size,
+            max_seq_length=max_seq_length,
         )
         cache_path = cache_dir / f"embeddings__{config.cache_key()}.npy"
         resolved.dense_index = build_index(

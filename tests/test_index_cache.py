@@ -24,9 +24,14 @@ def v(text: str) -> MinorVersion:
 class FakeEmbedder:
     """Deterministic stand-in so the tests never download or run a real model."""
 
-    def __init__(self, name: str, dimension: int = 8, fill: float = 1.0) -> None:
+    def __init__(
+        self, name: str, dimension: int = 8, fill: float = 1.0, max_seq_length: int = 320
+    ) -> None:
         self.model_name_or_path = name
         self._dimension = dimension
+        # Part of the cache fingerprint: the same model at a different input
+        # length produces different vectors.
+        self.max_seq_length = max_seq_length
         self.fill = fill
         self.calls = 0
 

@@ -85,6 +85,7 @@ def cmd_backfill(args, config) -> int:
         args.model,
         query_prefix=config.retrieval.query_prefix,
         batch_size=config.retrieval.embed_batch_size,
+        max_seq_length=config.retrieval.max_seq_length,
     )
     vectors = embedder.encode_chunks(list(corpus))
 

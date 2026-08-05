@@ -46,10 +46,17 @@ class Embedder:
         query_prefix: str = "",
         batch_size: int = 32,
         device: str | None = None,
+        max_seq_length: int | None = None,
     ) -> None:
         self.model_name_or_path = str(model_name_or_path)
         self.query_prefix = query_prefix
         self.batch_size = batch_size
+        # Load-bearing for the ablation's validity, not a tuning knob. A fine-tuned
+        # model saves whatever max_seq_length it trained at; if the base-model rows
+        # then embed at the model default, those rows differ by *two* things --
+        # fine-tuning and input length -- and the delta stops being attributable.
+        # Pinning it across every row keeps fine-tuning the only variable.
+        self.max_seq_length = max_seq_length
         self._device = device
         self._model: SentenceTransformer | None = None
 
@@ -68,6 +75,14 @@ class Embedder:
 
             log.info("loading bi-encoder %s", self.model_name_or_path)
             self._model = SentenceTransformer(self.model_name_or_path, device=self._device)
+            if self.max_seq_length is not None:
+                log.info(
+                    "pinning max_seq_length to %d (was %d) so every ablation row uses "
+                    "the same input length",
+                    self.max_seq_length,
+                    self._model.max_seq_length,
+                )
+                self._model.max_seq_length = self.max_seq_length
         return self._model
 
     @property
@@ -218,6 +233,10 @@ def _cache_fingerprint(corpus: Corpus, embedder: Embedder) -> dict[str, object]:
         "model": embedder.model_name_or_path,
         "n_chunks": len(corpus),
         "dimension": embedder.dimension,
+        # Part of the identity: the same model at a different input length produces
+        # different vectors, and reusing a cache across the two would silently mix
+        # them within one ablation.
+        "max_seq_length": embedder.max_seq_length,
         "corpus_digest": digest.hexdigest()[:32],
     }
 

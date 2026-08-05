@@ -127,6 +127,11 @@ class RetrievalConfig:
         "KVRAG_QUERY_PREFIX", "Represent this sentence for searching relevant passages: "
     )
     embed_batch_size: int = _env_int("KVRAG_EMBED_BATCH", 32)
+    # Pinned across every ablation row so fine-tuning is the only variable between
+    # them -- a fine-tuned model carries whatever length it trained at, and letting
+    # each row use its own would make the deltas unattributable. Also the length the
+    # bi-encoder is trained at, so training and inference agree.
+    max_seq_length: int = _env_int("KVRAG_MAX_SEQ_LENGTH", 320)
 
 
 @dataclass

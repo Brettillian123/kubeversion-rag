@@ -77,6 +77,9 @@ async def lifespan(app: FastAPI):
         state.model_name,
         query_prefix=config.retrieval.query_prefix,
         batch_size=config.retrieval.embed_batch_size,
+        # Must match what the corpus was indexed with, or query vectors land in a
+        # different region of the space than the passages they are meant to match.
+        max_seq_length=config.retrieval.max_seq_length,
     )
     # Force the lazy load now and warm the graph, so the first real request does not
     # pay for it and readiness genuinely means ready.
