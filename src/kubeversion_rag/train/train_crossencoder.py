@@ -71,6 +71,7 @@ def train_crossencoder(
     negatives_per_positive: int = 4,
     warmup_ratio: float = 0.1,
     seed: int = 20260805,
+    max_length: int = 512,
 ) -> Path:
     from datasets import Dataset
     from sentence_transformers.cross_encoder import (
@@ -105,8 +106,13 @@ def train_crossencoder(
             counts["positives"],
         )
 
-    model = CrossEncoder(base_model, num_labels=1)
+    # Set explicitly, and match serving/rerank.py's Reranker. A cross-encoder trained
+    # at one input length and served at another underperforms in a way that is
+    # genuinely hard to attribute -- the numbers simply come out lower, with no error
+    # and nothing in the logs pointing at the cause.
+    model = CrossEncoder(base_model, num_labels=1, max_length=max_length)
     disable_model_card_widgets(model)
+    log.info("cross-encoder max_length=%d (must match the serving Reranker)", max_length)
     # Class imbalance is real here (one positive to N negatives), and an unweighted
     # BCE quietly learns to predict "irrelevant" for everything, which looks like a
     # working model until you inspect the score distribution.
