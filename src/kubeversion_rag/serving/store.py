@@ -81,21 +81,32 @@ class QdrantStore:
             except Exception as exc:  # noqa: BLE001 - index may already exist
                 log.debug("payload index %s: %s", field, exc)
 
-    def count(self) -> int:
-        return int(self.client.count(self.collection, exact=True).count)
+    def count(self, exact: bool = True) -> int:
+        return int(self.client.count(self.collection, exact=exact).count)
 
-    def healthy(self) -> bool:
-        """Whether this store can actually serve a query right now.
+    def readiness(self) -> tuple[bool, int]:
+        """Whether this store can serve a query, and roughly how many points it holds.
 
-        Used by the readiness probe. Checks that the *collection* exists and is
-        non-empty, not merely that Qdrant is up -- a pod pointed at a collection that
-        was never backfilled will happily accept traffic and return nothing.
+        Checks the *collection*, not merely that Qdrant is up: a pod pointed at a
+        collection that was never backfilled would otherwise accept traffic and return
+        nothing at all.
+
+        Returns the count alongside the verdict so the probe does not have to ask
+        twice -- this runs every 10 seconds on every pod, and an exact count is a full
+        scan. The approximate count is more than accurate enough to answer "is there
+        anything in here", which is the only question being asked.
         """
         try:
-            return self.client.collection_exists(self.collection) and self.count() > 0
-        except Exception as exc:  # noqa: BLE001 - probe must never raise
-            log.warning("health check failed: %s", exc)
-            return False
+            if not self.client.collection_exists(self.collection):
+                return False, 0
+            points = self.count(exact=False)
+            return points > 0, points
+        except Exception as exc:  # noqa: BLE001 - a probe must never raise
+            log.warning("readiness check failed: %s", exc)
+            return False, 0
+
+    def healthy(self) -> bool:
+        return self.readiness()[0]
 
     # --- writes ---------------------------------------------------------------------
 

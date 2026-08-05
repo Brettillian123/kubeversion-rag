@@ -47,8 +47,7 @@ class StubReranker:
         out = []
         for candidates in candidate_lists:
             scored = [
-                (chunk, 10.0 if self.prefer_text in chunk.text else 0.0)
-                for chunk, _ in candidates
+                (chunk, 10.0 if self.prefer_text in chunk.text else 0.0) for chunk, _ in candidates
             ]
             scored.sort(key=lambda pair: pair[1], reverse=True)
             out.append(scored[:top_k])
@@ -63,9 +62,7 @@ class StubBM25:
         results = []
         for version in versions:
             hits = [
-                (chunk, 1.0)
-                for chunk in self.chunks
-                if version is None or chunk.covers(version)
+                (chunk, 1.0) for chunk in self.chunks if version is None or chunk.covers(version)
             ]
             results.append(hits[:k])
         return results
@@ -203,7 +200,9 @@ class TestConfigContract:
             )
 
         for earlier, later in zip(STANDARD_CONFIGS, STANDARD_CONFIGS[1:], strict=False):
-            differences = sum(1 for a, b in zip(flags(earlier), flags(later), strict=True) if a != b)
+            differences = sum(
+                1 for a, b in zip(flags(earlier), flags(later), strict=True) if a != b
+            )
             assert differences <= 2, (
                 f"{earlier.name} -> {later.name} changes {differences} things at once; "
                 "the resulting delta is not attributable to any single component"

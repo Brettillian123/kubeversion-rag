@@ -162,9 +162,9 @@ def readyz() -> dict[str, object]:
         raise HTTPException(status_code=503, detail="starting up")
     collection = _active_collection()
     store = _store_for(collection)
-    if not store.healthy():
+    ready, points = store.readiness()
+    if not ready:
         raise HTTPException(status_code=503, detail=f"collection {collection} is missing or empty")
-    points = store.count()
     COLLECTION_INFO.labels(collection).set(points)
     return {"status": "ready", "collection": collection, "points": points}
 

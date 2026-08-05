@@ -234,7 +234,7 @@ def cmd_eval_run(args: argparse.Namespace, config: Config) -> int:
     examples = load_examples(examples_path)
     log.info("evaluating on %s: %d examples over %d chunks", args.split, len(examples), len(corpus))
 
-    if args.configs:
+    if args.configs and not args.all:
         wanted = {name.strip() for name in args.configs.split(",") if name.strip()}
         selected = [c for c in STANDARD_CONFIGS if c.name in wanted]
         unknown = wanted - {c.name for c in STANDARD_CONFIGS}
@@ -444,8 +444,12 @@ def build_parser() -> argparse.ArgumentParser:
     eval_sub = evaluate.add_subparsers(dest="eval_command", required=True)
     eval_run = eval_sub.add_parser("run", help="run the ablation")
     eval_run.add_argument("--split", default="test", choices=["train", "dev", "test", "gold"])
-    eval_run.add_argument("--configs", help="comma-separated config names; default all")
-    eval_run.add_argument("--all", action="store_true", help="run every configuration")
+    eval_run.add_argument(
+        "--configs", help="comma-separated config names; omit to run every configuration"
+    )
+    eval_run.add_argument(
+        "--all", action="store_true", help="run every configuration, overriding --configs"
+    )
     eval_run.add_argument("--write-results", action="store_true")
     eval_run.add_argument("--force-reembed", action="store_true")
     eval_run.set_defaults(func=cmd_eval_run)
