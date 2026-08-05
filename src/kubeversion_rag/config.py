@@ -134,7 +134,14 @@ class ServingConfig:
     qdrant_url: str = os.environ.get("KVRAG_QDRANT_URL", "http://localhost:6333")
     qdrant_api_key: str | None = os.environ.get("KVRAG_QDRANT_API_KEY") or None
     embed_service_url: str = os.environ.get("KVRAG_EMBED_URL", "http://localhost:8081")
-    default_collection: str = os.environ.get("KVRAG_COLLECTION", "chunks__bge_small_en_v15__v1")
+    # Must equal serving.store.collection_name(RetrievalConfig.bi_encoder) -- the
+    # backfill names its collection from that function, and a hand-written default that
+    # drifts from it means the API queries a collection nobody ever wrote to. There is
+    # a test asserting the two agree, because the failure is silent: an empty result
+    # set, not an error.
+    default_collection: str = os.environ.get(
+        "KVRAG_COLLECTION", "chunks__baai_bge_small_en_v1_5__v1"
+    )
     generation_model: str = os.environ.get("KVRAG_MODEL", "claude-opus-5")
     max_output_tokens: int = _env_int("KVRAG_MAX_TOKENS", 2000)
     request_timeout_s: float = _env_float("KVRAG_TIMEOUT_S", 60.0)
