@@ -20,6 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ..models import Corpus, Example
+from . import warmup_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ def train_biencoder(
         num_train_epochs=epochs,
         per_device_train_batch_size=batch_size,
         learning_rate=learning_rate,
-        warmup_ratio=warmup_ratio,
+        **warmup_kwargs(warmup_ratio),
         # MNRL's negatives are the rest of the batch, so a batch containing two
         # near-duplicate rows creates a false negative -- the model is punished for
         # ranking a correct passage highly. Dropping the ragged last batch also keeps

@@ -20,6 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ..models import Corpus, Example
+from . import warmup_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ def train_crossencoder(
         num_train_epochs=epochs,
         per_device_train_batch_size=batch_size,
         learning_rate=learning_rate,
-        warmup_ratio=warmup_ratio,
+        **warmup_kwargs(warmup_ratio),
         eval_strategy="epoch" if dev_rows else "no",
         save_strategy="epoch",
         save_total_limit=1,

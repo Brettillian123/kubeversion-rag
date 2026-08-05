@@ -22,8 +22,12 @@ ml = [
     "sentence-transformers>=3.0",
     "rank-bm25>=0.2.2",
     "scikit-learn>=1.4",
-    # Required by the sentence-transformers Trainer API used in train/.
+    # Both are required by the sentence-transformers Trainer API used in train/.
+    # `accelerate` in particular is not pulled in transitively: without it the
+    # training args constructor raises ImportError at the first call, long after the
+    # corpus has been ingested and the dataset built.
     "datasets>=2.19",
+    "accelerate>=1.1",
 ]
 # The serving path: no torch in the API image, embeddings come over HTTP from the
 # embedding service. Keeping these split is what makes the API image small enough
