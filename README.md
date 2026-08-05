@@ -36,13 +36,44 @@ Numbers from a real run over `release-1.24` … `release-1.35`:
 That 44% is the version-sensitive surface — the part of the corpus where "which release
 are you on" changes the correct answer, and the part a naive retriever gets wrong.
 
+## The premise, measured
+
+Held-out test split, 1,811 questions, families disjoint from training:
+
+| Configuration | recall@10 | MRR@10 | nDCG@10 | version-correct@1 |
+|---|---:|---:|---:|---:|
+| BM25, no version awareness | 0.554 | 0.287 | 0.351 | 0.632 |
+| Off-the-shelf bi-encoder, no version awareness | 0.574 | 0.282 | 0.352 | **0.523** |
+| Off-the-shelf bi-encoder + version filter | 0.703 | 0.456 | 0.516 | 1.000 |
+
+**An off-the-shelf dense retriever picks the wrong release's snapshot 48% of the time.**
+It is a coin flip, and it is *worse at this than BM25* — dense embeddings collapse two
+near-identical snapshots into neighbouring points and then choose between them
+arbitrarily, while term matching at least reacts to the words that differ. That is the
+premise of this project, and it held up more strongly than expected.
+
+Read `version-correct@1` carefully: on filtered rows it is near-tautological (the filter
+only returns chunks that cover the target, so ~1.0 is by construction). The honest
+reading is that it *sizes the problem* on the unfiltered rows. Among filtered rows the
+discriminating metric is nDCG@10 — that is what fine-tuning and reranking have to move.
+
+### Status
+
+The fine-tuned rows of the ablation are **not yet filled in**. The training code runs
+end-to-end (`scripts/smoke_train.py` exercises both paths), but a real fine-tune on
+13k examples wants a GPU for an afternoon and has not been done here. Until it is,
+`kvrag eval run --all` marks those rows ⚠️ *not actually fine-tuned* rather than
+quietly reporting base-model numbers under a fine-tuned label.
+
 ## Quick start
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[ml,serve,dev]"
 ```
 
-Ingest the corpus (one sparse, blobless clone; ~10 min on a warm network):
+Ingest the corpus. One sparse, blobless, shallow clone re-checked-out per branch —
+about 90 seconds for all twelve releases, because adjacent branches share nearly every
+object and only the first fetch costs anything:
 
 ```bash
 kvrag ingest --min-version 1.24 --max-version 1.35
@@ -97,5 +128,10 @@ migration`.
   but their phrasing is narrower than real user questions. The hand-written gold set
   exists to keep the headline numbers honest; it is small.
 - **Corpus is English docs only.** Localised trees are excluded.
-- **The reranker needs a GPU to train** in reasonable time. Everything else — ingest,
-  retrieval, eval, serving — is CPU-only.
+- **The fine-tuned rows are unmeasured.** Training runs, but has not been run for real.
+  The results page marks those rows rather than reporting base numbers under them.
+- **Embedding the corpus on CPU takes ~35 minutes** (23k chunks, bge-small). It is
+  cached with a provenance sidecar, so it happens once per (model, corpus) pair.
+  Training wants a GPU; everything else — ingest, retrieval, eval, serving — is CPU-only.
+- **`version-correct@1` is tautological on filtered rows.** See above; the table would
+  otherwise flatter the version filter.
