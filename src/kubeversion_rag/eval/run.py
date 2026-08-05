@@ -176,10 +176,26 @@ def render_results_doc(run: EvalRun) -> str:
         "",
         markdown_table(run.results),
         "",
-        "Each row adds exactly one component to the row above it, so the delta is "
-        "attributable. `version_correct@1` is the metric this project exists to move: "
-        "it asks whether the top-ranked chunk actually applies to the Kubernetes "
-        "version in the question.",
+        "Each row adds exactly one component to the row above it, so the delta is attributable.",
+        "",
+        "### Reading `version_correct@1` correctly",
+        "",
+        "It asks whether the top-ranked chunk actually applies to the Kubernetes version "
+        "in the question — the failure this project exists to fix. But it means two "
+        "different things depending on the row, and conflating them would overstate the "
+        "result:",
+        "",
+        "- **Rows without the version filter** — a genuine measurement. This is how often "
+        "an unconstrained retriever surfaces the wrong release's snapshot first.",
+        "- **Rows with the version filter** — near-tautological. The filter only returns "
+        "chunks whose range covers the target, so the metric is ~1.0 by construction and "
+        "the only way to score below it is to return nothing at all.",
+        "",
+        "So the filter's jump in this column is not a modelling win; it quantifies the "
+        "size of the problem and confirms the filter is actually wired up. **Among "
+        "filtered rows, `nDCG@10` is the discriminating metric** — it measures whether "
+        "the right chunk is ranked first among the ones that *are* version-valid, which "
+        "is what fine-tuning and reranking are for.",
         "",
     ]
 

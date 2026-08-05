@@ -84,7 +84,6 @@ def _same_family_negatives(corpus: Corpus, positive: Chunk, version: MinorVersio
 
 
 def _sibling_removal_negatives(
-    corpus: Corpus,
     positive: Chunk,
     fact: DeprecationFact,
     deprecation_chunks: list[Chunk],
@@ -142,7 +141,7 @@ def build_deprecation_examples(
                 continue
 
             negatives = _same_family_negatives(corpus, positive, version)
-            negatives += _sibling_removal_negatives(corpus, positive, fact, guide_chunks)
+            negatives += _sibling_removal_negatives(positive, fact, guide_chunks)
             if not negatives:
                 stats.dropped_no_negative += 1
                 continue
@@ -175,7 +174,7 @@ def build_deprecation_examples(
             (chunk for chunk in candidates if chunk.covers(fact.removed_in)), None
         )
         if boundary_positive is not None:
-            negatives = _sibling_removal_negatives(corpus, boundary_positive, fact, guide_chunks)
+            negatives = _sibling_removal_negatives(boundary_positive, fact, guide_chunks)
             if negatives:
                 examples.append(
                     Example(

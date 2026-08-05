@@ -128,6 +128,19 @@ Metrics, all computed in `eval/metrics.py` with no dependency on the retrieval c
 - `version-correct@1` — does the top-1 chunk's version range contain the query's
   target version (the metric this whole project exists to move)
 
+**A caveat on `version-correct@1` that matters for reading the table.** It measures two
+different things depending on the row. Without the version filter it is a genuine
+measurement of how often an unconstrained retriever surfaces the wrong release first —
+measured at **0.523** for an off-the-shelf bi-encoder, i.e. a coin flip. With the filter
+on it is near-tautological, because the filter only returns chunks whose range covers
+the target; the only way to score below 1.0 is to return nothing.
+
+So the filter's jump in that column quantifies the size of the problem and confirms the
+filter is wired up — it is not a modelling result. Among filtered rows the
+discriminating metric is `nDCG@10`, which asks whether the *right* chunk ranks first
+among the ones that are version-valid. That is what fine-tuning and reranking have to
+move, and it is the number to hold them to.
+
 ## Deliberate non-goals
 
 - **Not a general K8s chatbot.** Out-of-scope questions should be refused, and the
