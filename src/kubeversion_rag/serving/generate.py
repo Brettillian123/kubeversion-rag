@@ -143,7 +143,7 @@ class Generator:
         self,
         model: str = "claude-opus-5",
         max_tokens: int = 2000,
-        min_score: float = -4.0,
+        min_score: float = 0.35,
         api_key: str | None = None,
         timeout: float = 60.0,
     ) -> None:
@@ -156,6 +156,43 @@ class Generator:
         self.timeout = timeout
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         self._client = None
+        self._scale_warned = False
+
+    def _warn_once_if_scale_looks_wrong(self, best: float) -> None:
+        """Catch a floor set on a different scale than the scores it is compared to.
+
+        This has already happened once. ``min_score`` was -4.0, which is a sensible
+        cross-encoder logit, but the serving path does not rerank -- it passes cosine
+        similarities in roughly [0, 1]. ``best < -4.0`` is then never true, so the
+        low-confidence refusal was dead code and the only refusal that could ever fire
+        was the empty-result one.
+
+        Nothing about that is visible in normal operation: the service answers every
+        question it retrieves anything for, which is exactly what it looks like when the
+        threshold is merely generous. Hence a loud log rather than a silent default.
+        """
+        if self._scale_warned:
+            return
+        cosine_range = -1.0 <= best <= 1.0
+        if cosine_range and self.min_score < -1.0:
+            self._scale_warned = True
+            log.error(
+                "min_score=%.2f but observed retrieval scores look like cosine "
+                "similarity (best=%.3f). The low-confidence refusal can never fire. "
+                "A cross-encoder-scale floor is only valid if the pipeline actually "
+                "reranks before generation.",
+                self.min_score,
+                best,
+            )
+        elif not cosine_range and -1.0 <= self.min_score <= 1.0:
+            self._scale_warned = True
+            log.error(
+                "min_score=%.2f looks like a cosine floor but observed scores are on a "
+                "wider scale (best=%.3f). The refusal gate will fire on almost every "
+                "query or almost none.",
+                self.min_score,
+                best,
+            )
 
     @property
     def client(self):
@@ -189,6 +226,7 @@ class Generator:
             )
 
         best = max(hit.final_score for hit in hits)
+        self._warn_once_if_scale_looks_wrong(best)
         if best < self.min_score:
             log.info("refusing: best score %.3f below floor %.3f", best, self.min_score)
             return _refusal(

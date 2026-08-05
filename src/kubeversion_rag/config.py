@@ -150,9 +150,24 @@ class ServingConfig:
     generation_model: str = os.environ.get("KVRAG_MODEL", "claude-opus-5")
     max_output_tokens: int = _env_int("KVRAG_MAX_TOKENS", 2000)
     request_timeout_s: float = _env_float("KVRAG_TIMEOUT_S", 60.0)
-    # Below this rerank score the pipeline refuses rather than answering. Tuned on the
-    # gold set so that unanswerable questions refuse without suppressing real answers.
-    min_context_score: float = _env_float("KVRAG_MIN_SCORE", -4.0)
+    # Below this retrieval score the pipeline refuses rather than answering. It is a
+    # *cosine similarity* floor, because the serving path does not rerank -- see
+    # generate.Generator._warn_once_if_scale_looks_wrong for what happened when this
+    # constant was left on the cross-encoder's scale.
+    #
+    # Set below the lowest-scoring answerable gold question (0.563) rather than tuned
+    # to separate answerable from unanswerable, because on this corpus that separation
+    # is not achievable at all with cosine: the gold refusals score 0.532-0.592 and the
+    # answerable questions 0.563-0.818, and the two populations overlap. With 23k chunks
+    # something is always topically close. So this floor catches only genuinely far-off
+    # queries, and real unanswerability is left to the generator's cite-or-refuse
+    # contract, which reads the passages rather than scoring them.
+    #
+    # The measurement that would change this: the cross-encoder *does* separate the two
+    # populations (answerable >= -9.61, refusals <= -9.87), so reranking before the gate
+    # would make a real confidence floor possible. Not adopted -- 0.26 logits of margin
+    # on 14 questions is a number that would not survive a fifteenth.
+    min_context_score: float = _env_float("KVRAG_MIN_SCORE", 0.35)
 
     @property
     def active_collection(self) -> str:

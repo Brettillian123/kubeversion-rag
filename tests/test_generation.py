@@ -93,3 +93,72 @@ class TestRefusal:
         generator = Generator(api_key="", min_score=0.0)
         resolved = ResolvedVersion(v("1.30"), VersionSource.EXPLICIT)
         assert generator.answer("q", [], resolved).refused
+
+
+class TestScoreScaleGuard:
+    """The refusal floor and the scores it is compared against must be on one scale.
+
+    They were not: `min_score` was -4.0, a cross-encoder logit, while the serving path
+    passes cosine similarities in [0, 1]. `best < -4.0` is never true, so the
+    low-confidence refusal was unreachable. Nothing about that is visible in operation --
+    a gate that never fires looks exactly like a gate that is merely generous.
+    """
+
+    def _hits(self, score: float):
+        from kubeversion_rag.models import Chunk, RetrievedChunk
+        from kubeversion_rag.versions import MinorVersion
+
+        chunk = Chunk(
+            "a.md", ("A",), "text", MinorVersion.parse("1.24"), MinorVersion.parse("1.31")
+        )
+        return [RetrievedChunk(chunk=chunk, score=score)]
+
+    def test_a_crossencoder_floor_against_cosine_scores_is_reported(self, caplog):
+        import logging
+
+        generator = Generator(api_key="", min_score=-4.0)
+        with caplog.at_level(logging.ERROR):
+            generator._warn_once_if_scale_looks_wrong(0.72)
+        assert "never fire" in caplog.text
+
+    def test_a_cosine_floor_against_logit_scores_is_reported(self, caplog):
+        import logging
+
+        generator = Generator(api_key="", min_score=0.35)
+        with caplog.at_level(logging.ERROR):
+            generator._warn_once_if_scale_looks_wrong(9.4)
+        assert "wider scale" in caplog.text
+
+    def test_a_matched_scale_is_silent(self, caplog):
+        import logging
+
+        generator = Generator(api_key="", min_score=0.35)
+        with caplog.at_level(logging.ERROR):
+            generator._warn_once_if_scale_looks_wrong(0.72)
+        assert caplog.text == ""
+
+    def test_it_warns_once_not_per_request(self, caplog):
+        import logging
+
+        generator = Generator(api_key="", min_score=-4.0)
+        with caplog.at_level(logging.ERROR):
+            for _ in range(5):
+                generator._warn_once_if_scale_looks_wrong(0.72)
+        assert caplog.text.count("never fire") == 1
+
+    def test_the_shipped_default_is_on_the_cosine_scale(self):
+        # The serving path does not rerank, so the default has to be a cosine floor.
+        # If a reranking stage is ever added to serving, this is the assertion that
+        # should be updated deliberately rather than the constant edited quietly.
+        from kubeversion_rag.config import load_config
+
+        assert 0.0 <= load_config().serving.min_context_score <= 1.0
+
+    def test_the_floor_sits_below_the_lowest_answerable_gold_question(self):
+        # Measured: answerable gold questions score 0.563-0.818, expected-refusal ones
+        # 0.532-0.592. They overlap, so no cosine floor separates them. Given that, the
+        # floor must sit below the answerable minimum -- a floor inside the overlap
+        # buys a few refusals by silently suppressing real answers.
+        from kubeversion_rag.config import load_config
+
+        assert load_config().serving.min_context_score < 0.563

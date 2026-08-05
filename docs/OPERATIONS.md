@@ -40,6 +40,7 @@ its disk the same day removes the only cheap way out of a bad promotion.
 | Answers are silently assuming "latest" | `kvrag_version_source_total{source="defaulted"}` rising as a share | Users are not stating their version. A version-aware system that mostly defaults is a version-blind system with extra steps. |
 | The corpus stopped updating | `kvrag_active_collection_points` flat across a release | The ingest CronJob is failing, or `concurrencyPolicy: Forbid` is suppressing runs because one is wedged. |
 | Retrieval quality regressed | `kvrag_refusals_total{reason="low_confidence"}` climbing | Either the corpus drifted or a promotion went bad. Check the last migration report. |
+| Retrieval quality regressed, *silently* | `kvrag_refusals_total{reason="low_confidence"}` pinned at exactly zero | A gate that never fires reads the same as a gate nothing trips. `KVRAG_MIN_SCORE` is a **cosine** floor because serving does not rerank; setting it on the cross-encoder's scale (a negative number) makes the comparison unsatisfiable. The generator logs an error once at request time if it detects that — grep for `min_score=` in the API logs. |
 | The model is inventing sources | `warnings.invalid_citations` non-empty in responses | Citations are validated per response; a sustained non-zero rate means the generation prompt needs work. |
 | Backpressure | `kvrag_stage_seconds{stage="embed"}` p99 | The embedding service is the usual bottleneck; it saturates CPU before the API does. |
 
