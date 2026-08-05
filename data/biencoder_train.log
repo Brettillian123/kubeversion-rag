@@ -1,0 +1,50 @@
+12:25:09 INFO    kubeversion_rag.train.train_biencoder: training on 17797 triplets from 9115 examples
+12:25:09 INFO    kubeversion_rag.train.train_biencoder: device -- CUDA: NVIDIA GeForce RTX 4060 Laptop GPU, 8.6 GB (torch 2.13.0+cu126)
+12:25:09 INFO    sentence_transformers.base.model: No device provided, using cuda:0
+12:25:10 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+12:25:10 WARNING huggingface_hub.utils._http: Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+12:25:10 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/modules.json "HTTP/1.1 200 OK"
+12:25:10 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+12:25:10 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config_sentence_transformers.json "HTTP/1.1 200 OK"
+12:25:10 INFO    sentence_transformers.base.model: Loading SentenceTransformer model from BAAI/bge-small-en-v1.5.
+12:25:10 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config_sentence_transformers.json "HTTP/1.1 200 OK"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/README.md "HTTP/1.1 200 OK"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/modules.json "HTTP/1.1 200 OK"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/sentence_bert_config.json "HTTP/1.1 200 OK"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config.json "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|##########| 199/199 [00:00<00:00, 2719.78it/s]
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/processor_config.json "HTTP/1.1 404 Not Found"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/preprocessor_config.json "HTTP/1.1 404 Not Found"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/video_preprocessor_config.json "HTTP/1.1 404 Not Found"
+12:25:11 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/preprocessor_config.json "HTTP/1.1 404 Not Found"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/tokenizer_config.json "HTTP/1.1 200 OK"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config.json "HTTP/1.1 200 OK"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/config.json "HTTP/1.1 200 OK"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/tokenizer_config.json "HTTP/1.1 200 OK"
+12:25:12 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+12:25:12 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/BAAI/bge-small-en-v1.5/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+12:25:12 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/BAAI/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+12:25:12 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/BAAI/bge-small-en-v1.5 "HTTP/1.1 200 OK"
+12:25:13 INFO    kubeversion_rag.train.train_biencoder: max_seq_length capped at 320 (model default was 512)
+Computing widget examples:   0%|          | 0/1 [00:00<?, ?example/s]Computing widget examples: 100%|##########| 1/1 [00:00<00:00,  3.73example/s]                                                                             {'loss': '1.781', 'grad_norm': '9.147', 'learning_rate': '8.072e-07', 'epoch': '0.008993'}
+{'loss': '1.55', 'grad_norm': '9.204', 'learning_rate': '1.704e-06', 'epoch': '0.01799'}
+{'loss': '1.391', 'grad_norm': '9.944', 'learning_rate': '2.601e-06', 'epoch': '0.02698'}
+{'loss': '1.329', 'grad_norm': '8.714', 'learning_rate': '3.498e-06', 'epoch': '0.03597'}
+{'loss': '1.059', 'grad_norm': '7.407', 'learning_rate': '4.395e-06', 'epoch': '0.04496'}
+{'loss': '0.9411', 'grad_norm': '7.006', 'learning_rate': '5.291e-06', 'epoch': '0.05396'}
+{'loss': '0.7098', 'grad_norm': '6.182', 'learning_rate': '6.188e-06', 'epoch': '0.06295'}
+{'loss': '0.5403', 'grad_norm': '5.535', 'learning_rate': '7.085e-06', 'epoch': '0.07194'}
+{'loss': '0.4748', 'grad_norm': '7.636', 'learning_rate': '7.982e-06', 'epoch': '0.08094'}
+{'loss': '0.3676', 'grad_norm': '5.936', 'learning_rate': '8.879e-06', 'epoch': '0.08993'}

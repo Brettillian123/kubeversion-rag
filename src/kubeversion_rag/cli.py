@@ -346,6 +346,7 @@ def cmd_train_biencoder(args: argparse.Namespace, config: Config) -> int:
         epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
+        max_seq_length=args.max_seq_length,
     )
     return 0
 
@@ -468,6 +469,14 @@ def build_parser() -> argparse.ArgumentParser:
     bi.add_argument("--epochs", type=int, default=2)
     bi.add_argument("--batch-size", type=int, default=16)
     bi.add_argument("--learning-rate", type=float, default=2e-5)
+    bi.add_argument(
+        "--max-seq-length",
+        type=int,
+        default=None,
+        help="cap input tokens (default: the model's own limit, 512 for bge). Lower "
+        "values trade tail content for a quadratic reduction in attention cost -- "
+        "worth it on small-VRAM cards where the default runs at ~96%% occupancy.",
+    )
     bi.set_defaults(func=cmd_train_biencoder)
 
     cross = train_sub.add_parser("crossencoder", help="fine-tune the reranker")

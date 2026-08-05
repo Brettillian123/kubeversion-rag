@@ -128,6 +128,7 @@ def train_biencoder(
     batch_size: int = 16,
     learning_rate: float = 2e-5,
     warmup_ratio: float = 0.1,
+    max_seq_length: int | None = None,
 ) -> Path:
     from datasets import Dataset
     from sentence_transformers import (
@@ -149,6 +150,15 @@ def train_biencoder(
     dataset = Dataset.from_list(rows)
     model = SentenceTransformer(base_model)
     disable_model_card_widgets(model)
+    if max_seq_length is not None:
+        # Attention is quadratic in sequence length, and on an 8 GB card the default
+        # 512 leaves VRAM at ~96% occupancy, where the allocator spends more time
+        # churning than computing. Measured token lengths on this corpus are p50=341,
+        # p90=613, so a lower cap does truncate real content -- but the signal this
+        # model has to learn (heading breadcrumb and version range) sits in the first
+        # ~30 tokens of embed_text(), so the tail is the cheapest thing to lose.
+        model.max_seq_length = max_seq_length
+        log.info("max_seq_length capped at %d (model default was %d)", max_seq_length, 512)
     loss = MultipleNegativesRankingLoss(model)
     evaluator = _build_ir_evaluator(corpus, dev_examples, query_prefix)
 
