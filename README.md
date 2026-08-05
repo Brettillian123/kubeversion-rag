@@ -102,13 +102,44 @@ kvrag gold resolve
 kvrag eval run --configs bm25,dense_offtheshelf,dense_filtered
 ```
 
-Fine-tune and re-evaluate:
+Fine-tune and re-evaluate. These flags are the measured-good configuration on an 8 GB
+card, not defaults picked by feel — see the note below:
 
 ```bash
-kvrag train biencoder
-kvrag train crossencoder
+kvrag train biencoder --epochs 2 --batch-size 16 --max-seq-length 320
+kvrag train crossencoder --epochs 2 --batch-size 32
 kvrag eval run --all --write-results
 ```
+
+Combined runtime on an RTX 4060 Laptop: **21 minutes** (14 + 7).
+
+### Why those numbers, and a warning about the obvious ones
+
+The instinctive settings are much worse, and fail in a way that does not announce
+itself. Benchmarked on the bi-encoder:
+
+| batch | seq | s/step | peak VRAM |
+|---:|---:|---:|---:|
+| 64 | 512 | 29.728 | **17.68 GB** |
+| 32 | 320 | 5.654 | 8.89 GB |
+| **16** | **320** | **0.780** | **4.53 GB** |
+| 32 | 256 | 1.235 | 7.57 GB |
+
+Batch 64 at the model's default 512 tokens needs 17.7 GB of peak allocation. On an
+8 GB card that does not error — it spills to system RAM and runs 38× slower, while
+holding ~9 GB of host memory. The visible symptom is a GPU reporting 100% utilization
+at a fraction of its power budget, which looks like "training is just slow."
+
+MNRL normally wants large batches, because the batch *is* the negative pool. It matters
+less here: this project supplies explicit mined hard negatives, so dropping from 63
+in-batch negatives to 15 costs much less than it would in a generic setup.
+
+`--max-seq-length` is the strongest lever because attention is quadratic in it.
+Measured token lengths on this corpus are p50 341, p90 613, so 320 does truncate real
+content. It is affordable *here* specifically because the discriminative signal — the
+heading breadcrumb and version range — sits in the first ~30 tokens of `embed_text()`.
+That is a property of this chunk format, not general advice, so the flag defaults to
+the model's own limit.
 
 ## Layout
 

@@ -1,0 +1,221 @@
+12:40:29 INFO    kubeversion_rag.train.train_crossencoder: cross-encoder pairs: 9070 positive, 17236 negative (0 skipped), 3471 dev
+12:40:29 INFO    kubeversion_rag.train.train_crossencoder: device -- CUDA: NVIDIA GeForce RTX 4060 Laptop GPU, 8.6 GB (torch 2.13.0+cu126)
+12:40:29 INFO    sentence_transformers.base.model: No device provided, using cuda:0
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 404 Not Found"
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+12:40:30 WARNING huggingface_hub.utils._http: Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+12:40:30 INFO    sentence_transformers.base.model: No modules.json found for cross-encoder/ms-marco-MiniLM-L-6-v2, initializing a new CrossEncoder model.
+12:40:30 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2 "HTTP/1.1 307 Temporary Redirect"
+12:40:30 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/config.json "HTTP/1.1 200 OK"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/adapter_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/config.json "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|##########| 105/105 [00:00<00:00, 5720.99it/s]
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/processor_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/processor_config.json "HTTP/1.1 404 Not Found"
+12:40:30 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/preprocessor_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/preprocessor_config.json "HTTP/1.1 404 Not Found"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/video_preprocessor_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/video_preprocessor_config.json "HTTP/1.1 404 Not Found"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/preprocessor_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/preprocessor_config.json "HTTP/1.1 404 Not Found"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/tokenizer_config.json "HTTP/1.1 200 OK"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/config.json "HTTP/1.1 200 OK"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/config.json "HTTP/1.1 200 OK"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/tokenizer_config.json "HTTP/1.1 200 OK"
+12:40:31 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+12:40:31 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
+12:40:31 INFO    httpx: HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+12:40:32 INFO    kubeversion_rag.train.train_crossencoder: cross-encoder max_length=512 (must match the serving Reranker)
+12:40:32 INFO    kubeversion_rag.train.train_crossencoder: BCE pos_weight=1.90
+{'loss': '2.363', 'grad_norm': '32.1', 'learning_rate': '1.091e-06', 'epoch': '0.01215'}
+{'loss': '2.095', 'grad_norm': '21.88', 'learning_rate': '2.303e-06', 'epoch': '0.0243'}
+{'loss': '1.489', 'grad_norm': '21.06', 'learning_rate': '3.515e-06', 'epoch': '0.03645'}
+{'loss': '1.418', 'grad_norm': '15.27', 'learning_rate': '4.727e-06', 'epoch': '0.0486'}
+{'loss': '1.522', 'grad_norm': '23.16', 'learning_rate': '5.939e-06', 'epoch': '0.06075'}
+{'loss': '0.8728', 'grad_norm': '9.645', 'learning_rate': '7.152e-06', 'epoch': '0.0729'}
+{'loss': '0.9733', 'grad_norm': '8.736', 'learning_rate': '8.364e-06', 'epoch': '0.08505'}
+{'loss': '0.8478', 'grad_norm': '7.593', 'learning_rate': '9.576e-06', 'epoch': '0.09721'}
+{'loss': '0.7934', 'grad_norm': '7.956', 'learning_rate': '1.079e-05', 'epoch': '0.1094'}
+{'loss': '0.7701', 'grad_norm': '11.45', 'learning_rate': '1.2e-05', 'epoch': '0.1215'}
+{'loss': '0.587', 'grad_norm': '8.552', 'learning_rate': '1.321e-05', 'epoch': '0.1337'}
+{'loss': '0.6314', 'grad_norm': '8.888', 'learning_rate': '1.442e-05', 'epoch': '0.1458'}
+{'loss': '0.5917', 'grad_norm': '10.02', 'learning_rate': '1.564e-05', 'epoch': '0.158'}
+{'loss': '0.4704', 'grad_norm': '7.123', 'learning_rate': '1.685e-05', 'epoch': '0.1701'}
+{'loss': '0.5024', 'grad_norm': '9.356', 'learning_rate': '1.806e-05', 'epoch': '0.1823'}
+{'loss': '0.5716', 'grad_norm': '13.37', 'learning_rate': '1.927e-05', 'epoch': '0.1944'}
+{'loss': '0.5546', 'grad_norm': '10.87', 'learning_rate': '1.995e-05', 'epoch': '0.2066'}
+{'loss': '0.5441', 'grad_norm': '7.46', 'learning_rate': '1.981e-05', 'epoch': '0.2187'}
+{'loss': '0.4779', 'grad_norm': '11.02', 'learning_rate': '1.968e-05', 'epoch': '0.2309'}
+{'loss': '0.5454', 'grad_norm': '7.238', 'learning_rate': '1.954e-05', 'epoch': '0.243'}
+{'loss': '0.6208', 'grad_norm': '15.66', 'learning_rate': '1.941e-05', 'epoch': '0.2552'}
+{'loss': '0.4787', 'grad_norm': '4.606', 'learning_rate': '1.927e-05', 'epoch': '0.2673'}
+{'loss': '0.5577', 'grad_norm': '9.563', 'learning_rate': '1.914e-05', 'epoch': '0.2795'}
+{'loss': '0.4968', 'grad_norm': '5.886', 'learning_rate': '1.9e-05', 'epoch': '0.2916'}
+{'loss': '0.3388', 'grad_norm': '11.44', 'learning_rate': '1.887e-05', 'epoch': '0.3038'}
+{'loss': '0.4092', 'grad_norm': '6.875', 'learning_rate': '1.873e-05', 'epoch': '0.3159'}
+{'loss': '0.4222', 'grad_norm': '8.733', 'learning_rate': '1.86e-05', 'epoch': '0.3281'}
+{'loss': '0.3844', 'grad_norm': '7.303', 'learning_rate': '1.846e-05', 'epoch': '0.3402'}
+{'loss': '0.4345', 'grad_norm': '9.662', 'learning_rate': '1.833e-05', 'epoch': '0.3524'}
+{'loss': '0.4658', 'grad_norm': '13.57', 'learning_rate': '1.819e-05', 'epoch': '0.3645'}
+{'loss': '0.4039', 'grad_norm': '11.28', 'learning_rate': '1.806e-05', 'epoch': '0.3767'}
+{'loss': '0.3407', 'grad_norm': '9.462', 'learning_rate': '1.792e-05', 'epoch': '0.3888'}
+{'loss': '0.3534', 'grad_norm': '8.259', 'learning_rate': '1.779e-05', 'epoch': '0.401'}
+{'loss': '0.4219', 'grad_norm': '10.91', 'learning_rate': '1.765e-05', 'epoch': '0.4131'}
+{'loss': '0.4129', 'grad_norm': '5.039', 'learning_rate': '1.752e-05', 'epoch': '0.4253'}
+{'loss': '0.3698', 'grad_norm': '7.655', 'learning_rate': '1.738e-05', 'epoch': '0.4374'}
+{'loss': '0.3528', 'grad_norm': '6.224', 'learning_rate': '1.725e-05', 'epoch': '0.4496'}
+{'loss': '0.3414', 'grad_norm': '5.98', 'learning_rate': '1.711e-05', 'epoch': '0.4617'}
+{'loss': '0.3659', 'grad_norm': '6.949', 'learning_rate': '1.698e-05', 'epoch': '0.4739'}
+{'loss': '0.3097', 'grad_norm': '8.201', 'learning_rate': '1.684e-05', 'epoch': '0.486'}
+{'loss': '0.426', 'grad_norm': '26.56', 'learning_rate': '1.67e-05', 'epoch': '0.4982'}
+{'loss': '0.386', 'grad_norm': '8.233', 'learning_rate': '1.657e-05', 'epoch': '0.5103'}
+{'loss': '0.3216', 'grad_norm': '11.64', 'learning_rate': '1.643e-05', 'epoch': '0.5225'}
+{'loss': '0.4454', 'grad_norm': '15.07', 'learning_rate': '1.63e-05', 'epoch': '0.5346'}
+{'loss': '0.403', 'grad_norm': '8.844', 'learning_rate': '1.616e-05', 'epoch': '0.5468'}
+{'loss': '0.2733', 'grad_norm': '10.86', 'learning_rate': '1.603e-05', 'epoch': '0.5589'}
+{'loss': '0.221', 'grad_norm': '4.38', 'learning_rate': '1.589e-05', 'epoch': '0.5711'}
+{'loss': '0.3796', 'grad_norm': '10.06', 'learning_rate': '1.576e-05', 'epoch': '0.5832'}
+{'loss': '0.3033', 'grad_norm': '2.894', 'learning_rate': '1.562e-05', 'epoch': '0.5954'}
+{'loss': '0.3586', 'grad_norm': '13.81', 'learning_rate': '1.549e-05', 'epoch': '0.6075'}
+{'loss': '0.27', 'grad_norm': '10.5', 'learning_rate': '1.535e-05', 'epoch': '0.6197'}
+{'loss': '0.3152', 'grad_norm': '11.71', 'learning_rate': '1.522e-05', 'epoch': '0.6318'}
+{'loss': '0.3384', 'grad_norm': '7.234', 'learning_rate': '1.508e-05', 'epoch': '0.644'}
+{'loss': '0.247', 'grad_norm': '19.46', 'learning_rate': '1.495e-05', 'epoch': '0.6561'}
+{'loss': '0.2669', 'grad_norm': '7.391', 'learning_rate': '1.481e-05', 'epoch': '0.6683'}
+{'loss': '0.2039', 'grad_norm': '11.21', 'learning_rate': '1.468e-05', 'epoch': '0.6804'}
+{'loss': '0.2492', 'grad_norm': '15.52', 'learning_rate': '1.454e-05', 'epoch': '0.6926'}
+{'loss': '0.2523', 'grad_norm': '12.47', 'learning_rate': '1.441e-05', 'epoch': '0.7047'}
+{'loss': '0.2861', 'grad_norm': '13.22', 'learning_rate': '1.427e-05', 'epoch': '0.7169'}
+{'loss': '0.2582', 'grad_norm': '14.38', 'learning_rate': '1.414e-05', 'epoch': '0.729'}
+{'loss': '0.2146', 'grad_norm': '8.255', 'learning_rate': '1.4e-05', 'epoch': '0.7412'}
+{'loss': '0.2194', 'grad_norm': '7.34', 'learning_rate': '1.387e-05', 'epoch': '0.7533'}
+{'loss': '0.2198', 'grad_norm': '8.145', 'learning_rate': '1.373e-05', 'epoch': '0.7655'}
+{'loss': '0.2043', 'grad_norm': '5.517', 'learning_rate': '1.36e-05', 'epoch': '0.7776'}
+{'loss': '0.1729', 'grad_norm': '2.035', 'learning_rate': '1.346e-05', 'epoch': '0.7898'}
+{'loss': '0.2033', 'grad_norm': '7.265', 'learning_rate': '1.333e-05', 'epoch': '0.8019'}
+{'loss': '0.2742', 'grad_norm': '11.05', 'learning_rate': '1.319e-05', 'epoch': '0.8141'}
+{'loss': '0.2184', 'grad_norm': '12.96', 'learning_rate': '1.306e-05', 'epoch': '0.8262'}
+{'loss': '0.1608', 'grad_norm': '9.455', 'learning_rate': '1.292e-05', 'epoch': '0.8384'}
+{'loss': '0.1652', 'grad_norm': '10.71', 'learning_rate': '1.279e-05', 'epoch': '0.8505'}
+{'loss': '0.1782', 'grad_norm': '10.27', 'learning_rate': '1.265e-05', 'epoch': '0.8627'}
+{'loss': '0.2083', 'grad_norm': '15.33', 'learning_rate': '1.252e-05', 'epoch': '0.8748'}
+{'loss': '0.1753', 'grad_norm': '6.545', 'learning_rate': '1.238e-05', 'epoch': '0.887'}
+{'loss': '0.13', 'grad_norm': '6.958', 'learning_rate': '1.225e-05', 'epoch': '0.8991'}
+{'loss': '0.1574', 'grad_norm': '4.237', 'learning_rate': '1.211e-05', 'epoch': '0.9113'}
+{'loss': '0.1558', 'grad_norm': '12.06', 'learning_rate': '1.198e-05', 'epoch': '0.9235'}
+{'loss': '0.1333', 'grad_norm': '6.779', 'learning_rate': '1.184e-05', 'epoch': '0.9356'}
+{'loss': '0.1506', 'grad_norm': '10.95', 'learning_rate': '1.171e-05', 'epoch': '0.9478'}
+{'loss': '0.2383', 'grad_norm': '16.02', 'learning_rate': '1.157e-05', 'epoch': '0.9599'}
+{'loss': '0.1393', 'grad_norm': '8.165', 'learning_rate': '1.144e-05', 'epoch': '0.9721'}
+{'loss': '0.07714', 'grad_norm': '8.704', 'learning_rate': '1.13e-05', 'epoch': '0.9842'}
+{'loss': '0.1791', 'grad_norm': '4.797', 'learning_rate': '1.117e-05', 'epoch': '0.9964'}
+{'eval_loss': '0.06419', 'eval_runtime': '12.12', 'eval_samples_per_second': '286.3', 'eval_steps_per_second': '35.8', 'epoch': '1'}
+12:44:16 INFO    sentence_transformers.base.trainer: Saving model checkpoint to C:\MachineLearning\data\models\crossencoder\_checkpoints\checkpoint-823
+12:44:16 INFO    sentence_transformers.base.model: Saving model to C:\MachineLearning\data\models\crossencoder\_checkpoints\checkpoint-823
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  7.14it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  7.12it/s]
+{'loss': '0.1044', 'grad_norm': '19.1', 'learning_rate': '1.103e-05', 'epoch': '1.009'}
+{'loss': '0.1387', 'grad_norm': '10', 'learning_rate': '1.09e-05', 'epoch': '1.021'}
+{'loss': '0.1414', 'grad_norm': '7.91', 'learning_rate': '1.076e-05', 'epoch': '1.033'}
+{'loss': '0.1824', 'grad_norm': '17.71', 'learning_rate': '1.063e-05', 'epoch': '1.045'}
+{'loss': '0.1418', 'grad_norm': '8.058', 'learning_rate': '1.049e-05', 'epoch': '1.057'}
+{'loss': '0.1824', 'grad_norm': '4.73', 'learning_rate': '1.036e-05', 'epoch': '1.069'}
+{'loss': '0.129', 'grad_norm': '3.178', 'learning_rate': '1.022e-05', 'epoch': '1.081'}
+{'loss': '0.09044', 'grad_norm': '12.99', 'learning_rate': '1.009e-05', 'epoch': '1.094'}
+{'loss': '0.163', 'grad_norm': '19.46', 'learning_rate': '9.953e-06', 'epoch': '1.106'}
+{'loss': '0.1757', 'grad_norm': '8.082', 'learning_rate': '9.818e-06', 'epoch': '1.118'}
+{'loss': '0.1115', 'grad_norm': '5.27', 'learning_rate': '9.683e-06', 'epoch': '1.13'}
+{'loss': '0.1369', 'grad_norm': '14.55', 'learning_rate': '9.548e-06', 'epoch': '1.142'}
+{'loss': '0.1482', 'grad_norm': '4.326', 'learning_rate': '9.413e-06', 'epoch': '1.154'}
+{'loss': '0.2104', 'grad_norm': '7.405', 'learning_rate': '9.278e-06', 'epoch': '1.166'}
+{'loss': '0.1177', 'grad_norm': '19.27', 'learning_rate': '9.142e-06', 'epoch': '1.179'}
+{'loss': '0.09337', 'grad_norm': '4.525', 'learning_rate': '9.007e-06', 'epoch': '1.191'}
+{'loss': '0.05852', 'grad_norm': '1.755', 'learning_rate': '8.872e-06', 'epoch': '1.203'}
+{'loss': '0.07911', 'grad_norm': '1.081', 'learning_rate': '8.737e-06', 'epoch': '1.215'}
+{'loss': '0.1292', 'grad_norm': '5.991', 'learning_rate': '8.602e-06', 'epoch': '1.227'}
+{'loss': '0.09528', 'grad_norm': '7.537', 'learning_rate': '8.467e-06', 'epoch': '1.239'}
+{'loss': '0.2195', 'grad_norm': '11.25', 'learning_rate': '8.332e-06', 'epoch': '1.252'}
+{'loss': '0.09096', 'grad_norm': '1.159', 'learning_rate': '8.197e-06', 'epoch': '1.264'}
+{'loss': '0.08034', 'grad_norm': '7.582', 'learning_rate': '8.062e-06', 'epoch': '1.276'}
+{'loss': '0.1978', 'grad_norm': '8.207', 'learning_rate': '7.927e-06', 'epoch': '1.288'}
+{'loss': '0.173', 'grad_norm': '13.49', 'learning_rate': '7.792e-06', 'epoch': '1.3'}
+{'loss': '0.1044', 'grad_norm': '4.223', 'learning_rate': '7.657e-06', 'epoch': '1.312'}
+{'loss': '0.06955', 'grad_norm': '10.35', 'learning_rate': '7.522e-06', 'epoch': '1.324'}
+{'loss': '0.06735', 'grad_norm': '12.38', 'learning_rate': '7.387e-06', 'epoch': '1.337'}
+{'loss': '0.1177', 'grad_norm': '10.33', 'learning_rate': '7.252e-06', 'epoch': '1.349'}
+{'loss': '0.1047', 'grad_norm': '8.273', 'learning_rate': '7.117e-06', 'epoch': '1.361'}
+{'loss': '0.1182', 'grad_norm': '6.38', 'learning_rate': '6.982e-06', 'epoch': '1.373'}
+{'loss': '0.09936', 'grad_norm': '14.6', 'learning_rate': '6.847e-06', 'epoch': '1.385'}
+{'loss': '0.09893', 'grad_norm': '14.34', 'learning_rate': '6.712e-06', 'epoch': '1.397'}
+{'loss': '0.08414', 'grad_norm': '4.761', 'learning_rate': '6.577e-06', 'epoch': '1.409'}
+{'loss': '0.08369', 'grad_norm': '10.99', 'learning_rate': '6.442e-06', 'epoch': '1.422'}
+{'loss': '0.176', 'grad_norm': '12.24', 'learning_rate': '6.307e-06', 'epoch': '1.434'}
+{'loss': '0.1102', 'grad_norm': '10.25', 'learning_rate': '6.172e-06', 'epoch': '1.446'}
+{'loss': '0.08574', 'grad_norm': '27.8', 'learning_rate': '6.036e-06', 'epoch': '1.458'}
+{'loss': '0.07132', 'grad_norm': '1.878', 'learning_rate': '5.901e-06', 'epoch': '1.47'}
+{'loss': '0.1302', 'grad_norm': '10.4', 'learning_rate': '5.766e-06', 'epoch': '1.482'}
+{'loss': '0.05892', 'grad_norm': '0.3131', 'learning_rate': '5.631e-06', 'epoch': '1.495'}
+{'loss': '0.1036', 'grad_norm': '6.938', 'learning_rate': '5.496e-06', 'epoch': '1.507'}
+{'loss': '0.126', 'grad_norm': '10.4', 'learning_rate': '5.361e-06', 'epoch': '1.519'}
+{'loss': '0.07005', 'grad_norm': '14.19', 'learning_rate': '5.226e-06', 'epoch': '1.531'}
+{'loss': '0.08233', 'grad_norm': '2.148', 'learning_rate': '5.091e-06', 'epoch': '1.543'}
+{'loss': '0.07602', 'grad_norm': '3.686', 'learning_rate': '4.956e-06', 'epoch': '1.555'}
+{'loss': '0.04117', 'grad_norm': '1.367', 'learning_rate': '4.821e-06', 'epoch': '1.567'}
+{'loss': '0.07435', 'grad_norm': '17.72', 'learning_rate': '4.686e-06', 'epoch': '1.58'}
+{'loss': '0.1154', 'grad_norm': '16.05', 'learning_rate': '4.551e-06', 'epoch': '1.592'}
+{'loss': '0.1019', 'grad_norm': '2.312', 'learning_rate': '4.416e-06', 'epoch': '1.604'}
+{'loss': '0.04513', 'grad_norm': '14.31', 'learning_rate': '4.281e-06', 'epoch': '1.616'}
+{'loss': '0.04685', 'grad_norm': '0.2696', 'learning_rate': '4.146e-06', 'epoch': '1.628'}
+{'loss': '0.08525', 'grad_norm': '4.802', 'learning_rate': '4.011e-06', 'epoch': '1.64'}
+{'loss': '0.09746', 'grad_norm': '12.23', 'learning_rate': '3.876e-06', 'epoch': '1.652'}
+{'loss': '0.04059', 'grad_norm': '0.5908', 'learning_rate': '3.741e-06', 'epoch': '1.665'}
+{'loss': '0.1254', 'grad_norm': '10.39', 'learning_rate': '3.606e-06', 'epoch': '1.677'}
+{'loss': '0.05859', 'grad_norm': '1.521', 'learning_rate': '3.471e-06', 'epoch': '1.689'}
+{'loss': '0.1112', 'grad_norm': '4.702', 'learning_rate': '3.336e-06', 'epoch': '1.701'}
+{'loss': '0.029', 'grad_norm': '22.86', 'learning_rate': '3.201e-06', 'epoch': '1.713'}
+{'loss': '0.1347', 'grad_norm': '21.05', 'learning_rate': '3.065e-06', 'epoch': '1.725'}
+{'loss': '0.1532', 'grad_norm': '41.52', 'learning_rate': '2.93e-06', 'epoch': '1.738'}
+{'loss': '0.03334', 'grad_norm': '7.822', 'learning_rate': '2.795e-06', 'epoch': '1.75'}
+{'loss': '0.04383', 'grad_norm': '11.42', 'learning_rate': '2.66e-06', 'epoch': '1.762'}
+{'loss': '0.06581', 'grad_norm': '10.77', 'learning_rate': '2.525e-06', 'epoch': '1.774'}
+{'loss': '0.06295', 'grad_norm': '17.83', 'learning_rate': '2.39e-06', 'epoch': '1.786'}
+{'loss': '0.06721', 'grad_norm': '5.549', 'learning_rate': '2.255e-06', 'epoch': '1.798'}
+{'loss': '0.04978', 'grad_norm': '0.1023', 'learning_rate': '2.12e-06', 'epoch': '1.81'}
+{'loss': '0.06755', 'grad_norm': '16.12', 'learning_rate': '1.985e-06', 'epoch': '1.823'}
+{'loss': '0.1033', 'grad_norm': '1.562', 'learning_rate': '1.85e-06', 'epoch': '1.835'}
+{'loss': '0.1017', 'grad_norm': '0.0351', 'learning_rate': '1.715e-06', 'epoch': '1.847'}
+{'loss': '0.07216', 'grad_norm': '11.21', 'learning_rate': '1.58e-06', 'epoch': '1.859'}
+{'loss': '0.079', 'grad_norm': '0.4595', 'learning_rate': '1.445e-06', 'epoch': '1.871'}
+{'loss': '0.07365', 'grad_norm': '20.66', 'learning_rate': '1.31e-06', 'epoch': '1.883'}
+{'loss': '0.035', 'grad_norm': '16.91', 'learning_rate': '1.175e-06', 'epoch': '1.896'}
+{'loss': '0.0509', 'grad_norm': '0.8111', 'learning_rate': '1.04e-06', 'epoch': '1.908'}
+{'loss': '0.07022', 'grad_norm': '3.167', 'learning_rate': '9.048e-07', 'epoch': '1.92'}
+{'loss': '0.09472', 'grad_norm': '9.168', 'learning_rate': '7.698e-07', 'epoch': '1.932'}
+{'loss': '0.09956', 'grad_norm': '0.103', 'learning_rate': '6.347e-07', 'epoch': '1.944'}
+{'loss': '0.04642', 'grad_norm': '6.92', 'learning_rate': '4.997e-07', 'epoch': '1.956'}
+{'loss': '0.05506', 'grad_norm': '3.066', 'learning_rate': '3.646e-07', 'epoch': '1.968'}
+{'loss': '0.02193', 'grad_norm': '2.771', 'learning_rate': '2.296e-07', 'epoch': '1.981'}
+{'loss': '0.05703', 'grad_norm': '7.328', 'learning_rate': '9.453e-08', 'epoch': '1.993'}
+{'eval_loss': '0.005649', 'eval_runtime': '12.55', 'eval_samples_per_second': '276.6', 'eval_steps_per_second': '34.58', 'epoch': '2'}
+12:47:58 INFO    sentence_transformers.base.trainer: Saving model checkpoint to C:\MachineLearning\data\models\crossencoder\_checkpoints\checkpoint-1646
+12:47:58 INFO    sentence_transformers.base.model: Saving model to C:\MachineLearning\data\models\crossencoder\_checkpoints\checkpoint-1646
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  6.93it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  6.92it/s]
+{'train_runtime': '446.2', 'train_samples_per_second': '117.9', 'train_steps_per_second': '3.689', 'train_loss': '0.2743', 'epoch': '2'}
+12:47:59 INFO    sentence_transformers.base.model: Saving model to C:\MachineLearning\data\models\crossencoder
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  6.43it/s]Writing model shards: 100%|##########| 1/1 [00:00<00:00,  6.42it/s]
+12:47:59 INFO    kubeversion_rag.train.train_crossencoder: saved fine-tuned cross-encoder to C:\MachineLearning\data\models\crossencoder
