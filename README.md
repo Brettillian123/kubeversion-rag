@@ -40,17 +40,31 @@ are you on" changes the correct answer, and the part a naive retriever gets wron
 
 Held-out test split, 1,811 questions, families disjoint from training:
 
-| Configuration | recall@10 | MRR@10 | nDCG@10 | version-correct@1 |
-|---|---:|---:|---:|---:|
-| BM25, no version awareness | 0.554 | 0.287 | 0.351 | 0.632 |
-| Off-the-shelf bi-encoder, no version awareness | 0.574 | 0.282 | 0.352 | **0.523** |
-| Off-the-shelf bi-encoder + version filter | 0.703 | 0.456 | 0.516 | 1.000 |
+| Configuration | recall@1 | recall@10 | MRR@10 | nDCG@10 | version-correct@1 |
+|---|---:|---:|---:|---:|---:|
+| BM25, no version awareness | 0.168 | 0.554 | 0.287 | 0.351 | 0.632 |
+| Off-the-shelf bi-encoder, no version awareness | 0.151 | 0.574 | 0.282 | 0.352 | **0.523** |
+| Off-the-shelf bi-encoder + version filter | 0.340 | 0.703 | 0.456 | 0.516 | 1.000 |
 
 **An off-the-shelf dense retriever picks the wrong release's snapshot 48% of the time.**
 It is a coin flip, and it is *worse at this than BM25* — dense embeddings collapse two
 near-identical snapshots into neighbouring points and then choose between them
 arbitrarily, while term matching at least reacts to the words that differ. That is the
 premise of this project, and it held up more strongly than expected.
+
+The split by question type sharpens it. nDCG@10, same run:
+
+| Question type | BM25 | Dense | Dense + filter |
+|---|---:|---:|---:|
+| Changed documentation section | 0.346 | 0.352 | 0.513 |
+| Deprecation (API removed in release X) | 0.525 | **0.365** | 0.624 |
+| Deprecation boundary (asked *at* the removal version) | 0.783 | **0.533** | 0.839 |
+
+Dense retrieval is *worst exactly where the questions are most precisely
+version-sensitive*. API group strings like `flowcontrol.apiserver.k8s.io/v1beta3` are
+rare exact tokens that term matching nails and a 384-dimensional embedding blurs
+together with its `v1beta1` and `v1beta2` siblings — three passages with nearly
+identical wording and three different correct answers.
 
 Read `version-correct@1` carefully: on filtered rows it is near-tautological (the filter
 only returns chunks that cover the target, so ~1.0 is by construction). The honest
