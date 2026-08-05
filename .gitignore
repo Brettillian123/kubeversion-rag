@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Corpus and derived artifacts.
+#
+# All of this is reproducible from `kvrag ingest` + `kvrag dataset build`, and it is
+# large (the sparse clone alone is hundreds of MB). Committing it would make the repo
+# unclonable and every diff unreadable.
+data/raw/
+data/interim/
+data/datasets/
+data/models/
+data/results/
+
+# ...except the hand-written gold questions, which are source, not output. They cannot
+# be regenerated and losing them would mean losing the only check on the templated set.
+!data/gold/
+!data/gold/*.yaml
+
+# Trained weights: large, and reproducible from the training scripts.
+*.safetensors
+*.bin
+*.npy
+*.meta.json
+
+# Local secrets. The API key is read from the environment (or a Kubernetes Secret in
+# the chart); nothing should ever put it in the tree.
+.env
+*.pem
+
+# Per-machine tool settings, not project source.
+.claude/settings.local.json

@@ -1,0 +1,23 @@
+# Keep the build context small and hermetic. The corpus is hundreds of MB and would be
+# uploaded to the daemon on every build; the only data the images need is the
+# deprecation-facts file, which is whitelisted below.
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+data/
+!data/interim/deprecation_facts.jsonl
+
+docs/
+tests/
+.github/
+deploy/
+*.md
+!README.md
+
+.env

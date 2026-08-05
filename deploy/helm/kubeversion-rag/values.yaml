@@ -1,0 +1,153 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  registry: ghcr.io
+  repository: kubeversion-rag
+  # Set explicitly at install time (`--set image.tag=$(git rev-parse --short HEAD)`).
+  # Deliberately not defaulted to "latest": a mutable tag makes it impossible to say
+  # which code is running, and turns a rollback into a guess.
+  tag: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# The collection the API serves from. The migration script flips this value and rolls
+# the deployment; see docs/ARCHITECTURE.md § Zero-downtime embedding-model migration.
+activeCollection: chunks__baai_bge_small_en_v1_5__v1
+
+corpus:
+  minVersion: "1.24"
+  maxVersion: "1.35"
+
+anthropic:
+  # Name of an existing Secret with an ANTHROPIC_API_KEY key. The chart never takes
+  # the key as a value -- a secret passed through `--set` ends up in the Helm release
+  # object, in shell history, and in CI logs.
+  existingSecret: ""
+  secretKey: ANTHROPIC_API_KEY
+  model: claude-opus-5
+
+api:
+  replicaCount: 2
+  port: 8080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      # No CPU limit on purpose: this pod is latency-sensitive and mostly waiting on
+      # I/O, and CFS throttling at the limit produces tail latency that looks like a
+      # dependency problem. The request is what schedules it; the limit only throttles.
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+embed:
+  replicaCount: 2
+  port: 8081
+  model: BAAI/bge-small-en-v1.5
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    # Lower than the API's: encoding saturates CPU, so by the time a replica is at 80%
+    # its p99 has already degraded badly.
+    targetCPUUtilizationPercentage: 60
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+qdrant:
+  image: qdrant/qdrant:v1.12.4
+  port: 6333
+  storage:
+    size: 20Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      memory: 4Gi
+
+ingest:
+  enabled: true
+  # Weekly. Kubernetes minor releases land roughly quarterly, so anything more
+  # frequent is a large git fetch to discover nothing changed.
+  schedule: "0 3 * * 1"
+  # Ingestion writes the corpus that the backfill Job reads, so it needs a volume both
+  # can see. RWX is required if they may run on different nodes.
+  persistence:
+    size: 10Gi
+    storageClassName: ""
+    accessMode: ReadWriteOnce
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      memory: 4Gi
+
+backfill:
+  # Off by default: this is triggered deliberately by the migration script, not on
+  # every `helm upgrade`. An automatic re-embed on upgrade would be a surprising and
+  # expensive side effect of a routine config change.
+  enabled: false
+  model: BAAI/bge-small-en-v1.5
+  revision: 1
+  resources:
+    requests:
+      cpu: "2"
+      memory: 4Gi
+    limits:
+      memory: 8Gi
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  host: kvrag.example.com
+  tls:
+    enabled: false
+    secretName: kvrag-tls
+
+networkPolicy:
+  # Default-deny with explicit allows. The API pod holds an Anthropic API key, so
+  # constraining its egress is worth the configuration cost.
+  enabled: true
+  allowExternalEgress: true
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

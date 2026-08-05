@@ -1,0 +1,144 @@
+{{- if .Values.networkPolicy.enabled }}
+# Default-deny with explicit allows.
+#
+# Worth the configuration cost specifically because the API pod holds an Anthropic API
+# key and receives untrusted text from users. If prompt injection or a dependency
+# vulnerability ever gets code execution in that pod, egress policy is what decides
+# whether the key can be exfiltrated to an arbitrary host.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "kvrag.fullname" . }}-default-deny
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "kvrag.selectorLabels" . | nindent 6 }}
+  policyTypes: ["Ingress", "Egress"]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "kvrag.fullname" . }}-api
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "kvrag.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - ports:
+        - port: {{ .Values.api.port }}
+          protocol: TCP
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "kvrag.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: qdrant
+      ports:
+        - port: {{ .Values.qdrant.port }}
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "kvrag.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: embed
+      ports:
+        - port: {{ .Values.embed.port }}
+          protocol: TCP
+    # DNS. Without this every other rule fails at name resolution, which presents as a
+    # confusing timeout rather than a policy denial.
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    {{- if .Values.networkPolicy.allowExternalEgress }}
+    # HTTPS to the Anthropic API. NetworkPolicy cannot express "only api.anthropic.com"
+    # -- it has no DNS-name selector -- so this is port-scoped and excludes RFC1918 and
+    # link-local ranges. The link-local exclusion also blocks the cloud metadata
+    # endpoint at 169.254.169.254, which is the usual next step after an SSRF.
+    # A tighter policy needs an egress gateway or a service mesh.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - port: 443
+          protocol: TCP
+    {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "kvrag.fullname" . }}-embed
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "kvrag.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: embed
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "kvrag.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: api
+      ports:
+        - port: {{ .Values.embed.port }}
+          protocol: TCP
+  egress:
+    # DNS only. Model weights are baked into the image, so this pod has no legitimate
+    # reason to reach the internet at runtime.
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "kvrag.fullname" . }}-qdrant
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "kvrag.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: qdrant
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "kvrag.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: api
+        - podSelector:
+            matchLabels:
+              {{- include "kvrag.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: backfill
+      ports:
+        - port: {{ .Values.qdrant.port }}
+          protocol: TCP
+{{- end }}

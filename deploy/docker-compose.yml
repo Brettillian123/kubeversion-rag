@@ -1,0 +1,87 @@
+# Local development topology. Mirrors the Kubernetes one so a bug found here is a bug
+# that would have happened on the cluster: same three services, same env var contract,
+# same collection naming.
+#
+#   docker compose -f deploy/docker-compose.yml up --build
+#   docker compose -f deploy/docker-compose.yml run --rm backfill
+#
+# Backfill is a one-shot profile rather than a service so `up` does not re-embed the
+# whole corpus every time you start the stack.
+
+name: kubeversion-rag
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-storage:/qdrant/storage
+    healthcheck:
+      # Qdrant's image has no shell utilities, so probe from inside its own bundled
+      # binary rather than assuming curl exists.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/6333 && echo -e 'GET /readyz HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q '200 OK'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  embed:
+    build:
+      context: ..
+      dockerfile: deploy/docker/embed.Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      KVRAG_EMBED_MODEL: ${KVRAG_EMBED_MODEL:-BAAI/bge-small-en-v1.5}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8081/readyz', timeout=2).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      # Generous: the first check happens after the model has loaded, which is the
+      # slow part of this container's startup.
+      retries: 30
+      start_period: 30s
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/api.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      KVRAG_QDRANT_URL: http://qdrant:6333
+      KVRAG_EMBED_URL: http://embed:8081
+      KVRAG_COLLECTION: ${KVRAG_COLLECTION:-chunks__baai_bge_small_en_v1_5__v1}
+      KVRAG_MODEL: ${KVRAG_MODEL:-claude-opus-5}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in your shell or a .env file}
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      embed:
+        condition: service_healthy
+
+  # One-shot: embed the corpus into Qdrant. Run once after ingestion, and again
+  # whenever the corpus or the embedding model changes.
+  backfill:
+    profiles: ["tools"]
+    build:
+      context: ..
+      dockerfile: deploy/docker/jobs.Dockerfile
+    environment:
+      KVRAG_QDRANT_URL: http://qdrant:6333
+      KVRAG_DATA_DIR: /data
+    volumes:
+      - ../data:/data
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    entrypoint: ["python"]
+    command:
+      - scripts/migrate_embedding_model.py
+      - backfill
+      - --model
+      - ${KVRAG_EMBED_MODEL:-BAAI/bge-small-en-v1.5}
+
+volumes:
+  qdrant-storage:

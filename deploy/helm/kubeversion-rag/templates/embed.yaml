@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kvrag.fullname" . }}-embed
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: embed
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.embed.port }}
+      targetPort: http
+  selector:
+    {{- include "kvrag.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: embed
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kvrag.fullname" . }}-embed
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: embed
+spec:
+  {{- if not .Values.embed.autoscaling.enabled }}
+  replicas: {{ .Values.embed.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kvrag.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: embed
+  template:
+    metadata:
+      labels:
+        {{- include "kvrag.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: embed
+      annotations:
+        # Roll the pods when the embedding model changes. Without this, editing
+        # embed.model in values.yaml changes the ConfigMap and nothing else -- the
+        # running pods keep serving vectors from the old model, silently mismatched
+        # with the collection they are meant to query.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "kvrag.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: embed
+          image: {{ include "kvrag.image" (dict "component" "embed" "Values" .Values) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.embed.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "kvrag.fullname" . }}-config
+          # Model loading takes tens of seconds. The startup probe absorbs that so the
+          # liveness probe can stay tight afterwards -- without it you must either set
+          # a long liveness delay (slow to detect real hangs) or watch pods get killed
+          # mid-load and never start.
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            failureThreshold: 40
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.embed.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- if .Values.embed.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "kvrag.fullname" . }}-embed
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "kvrag.fullname" . }}-embed
+  minReplicas: {{ .Values.embed.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.embed.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.embed.autoscaling.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleDown:
+      # Slow down-scaling: a new replica pays tens of seconds of model load before it
+      # can serve, so shedding one during a lull and needing it back a minute later is
+      # a latency spike you paid for voluntarily.
+      stabilizationWindowSeconds: 300
+{{- end }}
+{{- if .Values.embed.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "kvrag.fullname" . }}-embed
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.embed.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "kvrag.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: embed
+{{- end }}

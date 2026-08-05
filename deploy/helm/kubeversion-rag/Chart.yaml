@@ -1,0 +1,12 @@
+apiVersion: v2
+name: kubeversion-rag
+description: Version-aware retrieval over Kubernetes documentation
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - rag
+  - retrieval
+  - kubernetes
+maintainers:
+  - name: kubeversion-rag

@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kvrag.fullname" . }}-qdrant
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: qdrant
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.qdrant.port }}
+      targetPort: http
+    - name: grpc
+      port: 6334
+      targetPort: grpc
+  selector:
+    {{- include "kvrag.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: qdrant
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "kvrag.fullname" . }}-qdrant
+  labels:
+    {{- include "kvrag.labels" . | nindent 4 }}
+    app.kubernetes.io/component: qdrant
+spec:
+  # StatefulSet rather than Deployment because the index is durable state that must
+  # survive a restart. A Deployment with a PVC would fight itself during a rollout:
+  # the new pod cannot attach the volume until the old one releases it.
+  serviceName: {{ include "kvrag.fullname" . }}-qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "kvrag.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: qdrant
+  template:
+    metadata:
+      labels:
+        {{- include "kvrag.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: qdrant
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: qdrant
+          image: {{ .Values.qdrant.image }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.qdrant.port }}
+            - name: grpc
+              containerPort: 6334
+          env:
+            - name: QDRANT__SERVICE__HTTP_PORT
+              value: {{ .Values.qdrant.port | quote }}
+          # Qdrant serves /livez, /readyz and /healthz natively. Using its own
+          # endpoints beats a TCP check, which would report healthy while the storage
+          # engine is still recovering after a restart.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            # Generous: recovering a large index after an unclean shutdown is slow, and
+            # a tight startup probe turns a slow recovery into a crash loop.
+            failureThreshold: 60
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.qdrant.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: storage
+              mountPath: /qdrant/storage
+            # readOnlyRootFilesystem is on, so every path Qdrant writes to needs an
+            # explicit mount. Snapshots go outside the storage dir, and the temp dir is
+            # used during segment optimization -- missing either shows up as an opaque
+            # I/O error under load rather than at startup.
+            - name: snapshots
+              mountPath: /qdrant/snapshots
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: snapshots
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.qdrant.storage.storageClassName }}
+        storageClassName: {{ .Values.qdrant.storage.storageClassName }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.qdrant.storage.size }}

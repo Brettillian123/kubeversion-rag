@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install ruff
+      - run: ruff check src tests scripts
+      - run: ruff format --check src tests scripts
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      # CPU-only torch. The default wheel drags in several GB of CUDA runtime that a
+      # GitHub runner will never use, and it dominates job time.
+      - run: pip install --index-url https://download.pytorch.org/whl/cpu torch
+      - run: pip install -e ".[ml,serve,dev]"
+      - run: pytest -q --tb=short
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint deploy/helm/kubeversion-rag --set image.tag=ci
+      # Render and validate against real Kubernetes schemas. `helm lint` alone happily
+      # accepts a chart that produces objects the API server would reject.
+      - name: Render manifests
+        run: |
+          helm template kvrag deploy/helm/kubeversion-rag \
+            --set image.tag=ci \
+            --set anthropic.existingSecret=kvrag-anthropic \
+            --set backfill.enabled=true \
+            > /tmp/rendered.yaml
+          echo "rendered $(grep -c '^kind:' /tmp/rendered.yaml) objects"
+      - uses: azure/setup-kubectl@v4
+      - name: Validate against the Kubernetes API schema
+        run: kubectl apply --dry-run=client -f /tmp/rendered.yaml
+      - name: Reject a chart that renders with a floating image tag
+        run: |
+          if helm template kvrag deploy/helm/kubeversion-rag > /dev/null 2>&1; then
+            echo "::error::chart rendered without image.tag; the required() guard is gone"
+            exit 1
+          fi
+          echo "image.tag guard is intact"
+
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - component: api
+            dockerfile: deploy/docker/api.Dockerfile
+          - component: jobs
+            dockerfile: deploy/docker/jobs.Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      # The API image bakes in deprecation facts, which are produced by ingestion.
+      # A placeholder keeps the build hermetic; the real file is baked in the release
+      # build, which runs after ingestion.
+      - run: |
+          mkdir -p data/interim
+          [ -f data/interim/deprecation_facts.jsonl ] || echo '' > data/interim/deprecation_facts.jsonl
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: kubeversion-rag/${{ matrix.component }}:ci
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+  # The gate that actually protects quality. Runs the ablation on the committed test
+  # split and fails if any metric regressed against the checked-in baseline.
+  #
+  # The baseline lives in version control on purpose: accepting a regression then
+  # requires a human to edit that file in a pull request, where it is reviewable. A
+  # gate that compares against "the last CI run" ratchets downward silently.
+  eval-gate:
+    runs-on: ubuntu-latest
+    # Needs an ingested corpus, which is far too slow to rebuild per PR. The workflow
+    # restores it from cache and skips the gate on a cold cache rather than reporting
+    # a green check it did not actually earn.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - id: corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: data/interim
+          key: corpus-${{ hashFiles('src/kubeversion_rag/ingest/**') }}
+      - if: steps.corpus.outputs.cache-hit != 'true'
+        run: |
+          echo "::warning::no cached corpus; the eval gate did not run for this commit."
+          echo "Populate it with the nightly ingest workflow."
+      - if: steps.corpus.outputs.cache-hit == 'true'
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -e ".[ml,dev]"
+      - if: steps.corpus.outputs.cache-hit == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('pyproject.toml') }}
+      - if: steps.corpus.outputs.cache-hit == 'true'
+        run: |
+          kvrag dataset build
+          kvrag eval run --split test --write-results
+          kvrag eval gate --split test --baseline eval_baseline.json --allow-untrained
+      - if: always() && steps.corpus.outputs.cache-hit == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: |
+            data/results/
+            docs/RESULTS.md
+
+  # End-to-end on a real cluster. This is the difference between "the manifests parse"
+  # and "the thing runs": it catches probe misconfiguration, missing env vars, and
+  # service wiring that no amount of template validation will.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [images, helm]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: kvrag-e2e
+      - run: |
+          mkdir -p data/interim
+          [ -f data/interim/deprecation_facts.jsonl ] || echo '' > data/interim/deprecation_facts.jsonl
+      - name: Build and load images
+        run: |
+          docker build -f deploy/docker/api.Dockerfile -t kubeversion-rag/api:e2e .
+          kind load docker-image kubeversion-rag/api:e2e --name kvrag-e2e
+      - name: Install the chart
+        run: |
+          kubectl create secret generic kvrag-anthropic --from-literal=ANTHROPIC_API_KEY=placeholder
+          helm install kvrag deploy/helm/kubeversion-rag \
+            --set image.registry=docker.io \
+            --set image.repository=kubeversion-rag \
+            --set image.tag=e2e \
+            --set image.pullPolicy=Never \
+            --set anthropic.existingSecret=kvrag-anthropic \
+            --set api.autoscaling.enabled=false \
+            --set api.replicaCount=1 \
+            --set embed.replicaCount=0 \
+            --set ingest.enabled=false \
+            --wait --timeout 5m || true
+      - name: Qdrant must become ready
+        run: kubectl rollout status statefulset/kvrag-kubeversion-rag-qdrant --timeout=4m
+      - name: The API must stay NotReady until a collection is backfilled
+        run: |
+          # The readiness probe checks the collection, not just the process. With no
+          # backfill there is nothing to serve, and a pod that reports Ready here would
+          # mean the probe is not doing its job.
+          sleep 45
+          ready=$(kubectl get pods -l app.kubernetes.io/component=api \
+            -o jsonpath='{.items[0].status.containerStatuses[0].ready}')
+          echo "api ready=$ready (expected: false)"
+          if [ "$ready" = "true" ]; then
+            echo "::error::API reported Ready with an empty collection -- the readiness probe is not checking the collection"
+            exit 1
+          fi
+      - name: Liveness must still pass (process is healthy, dependency is not)
+        run: |
+          pod=$(kubectl get pods -l app.kubernetes.io/component=api -o jsonpath='{.items[0].metadata.name}')
+          restarts=$(kubectl get pod "$pod" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+          echo "restartCount=$restarts (expected: 0)"
+          if [ "$restarts" != "0" ]; then
+            echo "::error::API restarted; liveness is coupled to Qdrant and will amplify a dependency blip into an outage"
+            exit 1
+          fi
+      - if: failure()
+        run: |
+          kubectl get pods -o wide
+          kubectl describe pods
+          kubectl logs -l app.kubernetes.io/component=api --tail=100 || true

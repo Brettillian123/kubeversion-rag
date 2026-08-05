@@ -1,0 +1,102 @@
+# Hand-written evaluation questions. Never trained on.
+#
+# The generated set is templated: it isolates version-sensitivity precisely, but its
+# phrasing is narrower than how anyone actually asks. This file is the check on that.
+# Every entry here was written by hand and its expected answer verified against the
+# Deprecated API Migration Guide.
+#
+# Positives are specified as (document, required substring) rather than chunk ids, so
+# the file survives re-ingestion and re-chunking. `kvrag gold resolve` binds them to
+# concrete chunk ids at evaluation time and fails loudly if any question no longer
+# resolves — a gold question that silently stops matching is worse than no gold set,
+# because the metric keeps reporting.
+#
+# The FlowSchema group is the centrepiece: v1beta1 was removed in 1.26, v1beta2 in
+# 1.29, v1beta3 in 1.32. Three nearly identical passages, three different correct
+# answers, all distinguishable only by version.
+
+questions:
+  # --- FlowSchema: same resource, three removal boundaries ---------------------------
+  - question: "We're on 1.31 and our FlowSchema uses flowcontrol.apiserver.k8s.io/v1beta3. Do we need to change anything before upgrading?"
+    version: "1.31"
+    expect_doc: deprecation-guide
+    expect_text: "flowcontrol.apiserver.k8s.io/v1beta3"
+    rationale: "v1beta3 is still served at 1.31 and stops at 1.32; the answer must not cite the v1beta1 or v1beta2 blocks."
+
+  - question: "Our cluster is 1.32. Will a FlowSchema on flowcontrol.apiserver.k8s.io/v1beta3 still apply?"
+    version: "1.32"
+    expect_doc: deprecation-guide
+    expect_text: "flowcontrol.apiserver.k8s.io/v1beta3"
+    rationale: "1.32 is exactly the removal boundary — the off-by-one this system is meant to get right."
+
+  - question: "PriorityLevelConfiguration on flowcontrol.apiserver.k8s.io/v1beta2 — which release dropped it?"
+    version: "1.29"
+    expect_doc: deprecation-guide
+    expect_text: "flowcontrol.apiserver.k8s.io/v1beta2"
+    rationale: "Must retrieve the v1beta2 block, not its near-identical v1beta1 or v1beta3 siblings."
+
+  # --- PodSecurityPolicy: the canonical case ----------------------------------------
+  - question: "I'm running Kubernetes 1.24 and we still rely on PodSecurityPolicy. Is that still supported?"
+    version: "1.24"
+    expect_doc: deprecation-guide
+    expect_text: "PodSecurityPolicy"
+    rationale: "Still served at 1.24. An answer scoped to 1.25+ would tell them to migrate immediately, which is wrong for their cluster."
+
+  - question: "We're planning a jump to 1.25. What happens to our PodSecurityPolicy resources?"
+    version: "1.25"
+    expect_doc: deprecation-guide
+    expect_text: "PodSecurityPolicy"
+    rationale: "Removed in 1.25 with no replacement API — the migration target is an admission controller, not another apiVersion."
+
+  # --- Removals that landed together in 1.25 ----------------------------------------
+  - question: "Our CronJobs are defined with apiVersion batch/v1beta1. Will they apply on a 1.28 cluster?"
+    version: "1.28"
+    expect_doc: deprecation-guide
+    expect_text: "batch/v1beta1"
+    rationale: "Removed in 1.25, so no. Replacement batch/v1 has been available since 1.21."
+
+  - question: "Which apiVersion should a HorizontalPodAutoscaler use on Kubernetes 1.27?"
+    version: "1.27"
+    expect_doc: deprecation-guide
+    expect_text: "autoscaling/v2"
+    rationale: "Both v2beta1 (1.25) and v2beta2 (1.26) are gone by 1.27; autoscaling/v2 is the answer."
+
+  - question: "Is discovery.k8s.io/v1beta1 EndpointSlice still served in 1.26?"
+    version: "1.26"
+    expect_doc: deprecation-guide
+    expect_text: "discovery.k8s.io/v1beta1"
+    rationale: "Removed in 1.25."
+
+  - question: "On a 1.30 cluster, what replaced node.k8s.io/v1beta1 for RuntimeClass?"
+    version: "1.30"
+    expect_doc: deprecation-guide
+    expect_text: "node.k8s.io/v1beta1"
+    rationale: "node.k8s.io/v1, available since 1.20."
+
+  - question: "PodDisruptionBudget on policy/v1beta1 — is that valid on 1.29?"
+    version: "1.29"
+    expect_doc: deprecation-guide
+    expect_text: "PodDisruptionBudget"
+    rationale: "Removed in 1.25; policy/v1 since 1.21. Shares the policy/v1beta1 group with PSP, so the retriever must pick the right resource block."
+
+  - question: "CSIStorageCapacity with storage.k8s.io/v1beta1 on Kubernetes 1.28 — supported?"
+    version: "1.28"
+    expect_doc: deprecation-guide
+    expect_text: "CSIStorageCapacity"
+    rationale: "Removed in 1.27."
+
+  # --- Should be refused: no supporting document exists -----------------------------
+  - question: "What is the default value of --max-quantum-pods on Kubernetes 1.31?"
+    version: "1.31"
+    unanswerable: true
+    rationale: "No such flag. Correct behaviour is a refusal, not the nearest topical chunk."
+
+  - question: "How do I enable the HolographicScheduler feature gate in Kubernetes 1.30?"
+    version: "1.30"
+    unanswerable: true
+    rationale: "No such feature gate. Tests that plausible phrasing does not induce confabulation."
+
+  - question: "Which Kubernetes 1.29 flag controls the PodTelepathy admission plugin?"
+    version: "1.29"
+    unanswerable: true
+    rationale: "No such plugin."

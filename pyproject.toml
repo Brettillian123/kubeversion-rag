@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kubeversion-rag"
+version = "0.1.0"
+description = "Version-aware retrieval over Kubernetes documentation, with a measured ablation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+
+dependencies = [
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Retrieval and training. Pulls torch, so kept out of the serving image.
+ml = [
+    "torch>=2.4",
+    "sentence-transformers>=3.0",
+    "rank-bm25>=0.2.2",
+    "scikit-learn>=1.4",
+    # Required by the sentence-transformers Trainer API used in train/.
+    "datasets>=2.19",
+]
+# The serving path: no torch in the API image, embeddings come over HTTP from the
+# embedding service. Keeping these split is what makes the API image small enough
+# to scale quickly under an HPA.
+serve = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "qdrant-client>=1.9",
+    "anthropic>=0.40",
+    "httpx>=0.27",
+    "prometheus-client>=0.20",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+kvrag = "kubeversion_rag.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kubeversion_rag"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = ["ignore::DeprecationWarning"]
