@@ -36,3 +36,6 @@ data/results/
 
 # Per-machine tool settings, not project source.
 .claude/settings.local.json
+
+# Rendered Helm output, produced by validation runs.
+.rendered.yaml
