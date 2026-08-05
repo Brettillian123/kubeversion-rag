@@ -55,9 +55,16 @@ jobs:
             --set backfill.enabled=true \
             > /tmp/rendered.yaml
           echo "rendered $(grep -c '^kind:' /tmp/rendered.yaml) objects"
-      - uses: azure/setup-kubectl@v4
-      - name: Validate against the Kubernetes API schema
-        run: kubectl apply --dry-run=client -f /tmp/rendered.yaml
+      # kubeconform, not `kubectl --dry-run=client`. The kubectl form looks like
+      # offline validation but downloads the OpenAPI schema from a live API server,
+      # so on a runner with no cluster it fails with a connection-refused error that
+      # has nothing to do with the manifests. kubeconform carries the schemas.
+      - name: Validate against real Kubernetes schemas
+        run: |
+          KUBECONFORM=v0.6.7
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin kubeconform
+          kubeconform -kubernetes-version 1.31.0 -strict -summary /tmp/rendered.yaml
       - name: Reject a chart that renders with a floating image tag
         run: |
           if helm template kvrag deploy/helm/kubeversion-rag > /dev/null 2>&1; then
@@ -109,7 +116,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
+          # Deliberately no `cache: pip` here, unlike the other jobs. Every install
+          # step below is gated on the corpus cache, so on a cold cache pip never
+          # runs -- and the post-job cache save then errors out on a pip cache
+          # directory that was never created, failing a job that correctly skipped.
       - id: corpus
         uses: actions/cache/restore@v4
         with:
