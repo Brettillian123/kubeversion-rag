@@ -43,13 +43,26 @@ kubernetes/website (git, N release branches, sparse: content/en/docs)
                  ▼
            dataset.build       → (question, target_version, positive_chunk, hard_negatives[])
                  │
-        ┌────────┴────────┐
-        ▼                 ▼
-   train/               eval/
-   ├ bi-encoder (MNRL)   ├ recall@k, MRR@10, nDCG@10
-   └ cross-encoder (CE)  └ version-correct@1
-                          → ablation table (docs/RESULTS.md)
+                 ▼
+   train.biencoder (MNRL)
+                 │
+                 ▼
+   dataset.mine_negatives  → retrieve with the *fine-tuned* bi-encoder, keep what comes
+                 │            back as the reranker's negatives
+                 ▼
+   train.crossencoder (BCE)
+                 │
+                 ▼
+              eval/  → recall@k, MRR@10, nDCG@10, version-correct@1
+                       → ablation table (docs/RESULTS.md)
 ```
+
+**The ordering in that chain is a dependency, not a preference.** The reranker's
+negatives have to come from the retriever that will actually feed it; mining them
+earlier, or sampling them from the corpus, trains it on a population it never sees at
+inference. Doing that measured *worse than no reranker at all*, twice, with clean
+training loss both times — see [`docs/RESULTS.md § What the reranker
+cost`](RESULTS.md).
 
 At serve time:
 

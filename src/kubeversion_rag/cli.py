@@ -261,12 +261,14 @@ def cmd_eval_run(args: argparse.Namespace, config: Config) -> int:
     print()
 
     if args.write_results:
-        json_path = write_results(
-            run,
-            config.paths.results,
-            docs_path=Path(__file__).resolve().parents[2] / "docs" / "RESULTS.md",
-        )
-        log.info("wrote %s and docs/RESULTS.md", json_path)
+        # One generated file per split, and never docs/RESULTS.md. That file is written
+        # by hand: it carries the analysis of *why* the numbers came out this way, which
+        # nothing here can regenerate. Pointing the generator at it meant evaluating the
+        # gold split silently replaced the test-split table, prose and all.
+        docs_dir = Path(__file__).resolve().parents[2] / "docs" / "results"
+        docs_path = docs_dir / f"ablation__{run.question_set}.md"
+        json_path = write_results(run, config.paths.results, docs_path=docs_path)
+        log.info("wrote %s and %s", json_path, docs_path)
     return 0
 
 
@@ -369,7 +371,71 @@ def cmd_train_crossencoder(args: argparse.Namespace, config: Config) -> int:
         learning_rate=args.learning_rate,
         negatives_per_positive=args.negatives,
         random_negatives_per_positive=args.random_negatives,
+        retriever_negatives_per_positive=args.retriever_negatives,
     )
+    return 0
+
+
+def cmd_dataset_mine_negatives(args: argparse.Namespace, config: Config) -> int:
+    """Attach retriever-mined negatives to each split, using the fine-tuned bi-encoder.
+
+    Runs between `train biencoder` and `train crossencoder`, and refuses to run out of
+    order: mining against the base model would produce candidates the reranker never
+    sees, which is the exact failure this step exists to remove.
+    """
+    from .dataset.mine_negatives import mine_retriever_negatives
+    from .retrieval.pipeline import STANDARD_CONFIGS, build_pipeline
+
+    biencoder_dir = config.paths.models / "biencoder"
+    if not biencoder_dir.exists():
+        log.error(
+            "no fine-tuned bi-encoder at %s. Mining against the base model would defeat "
+            "the purpose -- run `kvrag train biencoder` first.",
+            biencoder_dir,
+        )
+        return 1
+
+    corpus = Corpus.load(config.paths.interim / "corpus.jsonl")
+    pipeline_config = next(
+        (row for row in STANDARD_CONFIGS if row.name == "dense_ft_filtered"), None
+    )
+    if pipeline_config is None:  # pragma: no cover -- guarded by test_ablation_validity
+        log.error("no dense_ft_filtered configuration to mine against")
+        return 1
+
+    pipeline = build_pipeline(
+        pipeline_config,
+        corpus,
+        models_dir=config.paths.models,
+        cache_dir=config.paths.interim,
+        default_bi_encoder=config.retrieval.bi_encoder,
+        default_cross_encoder=config.retrieval.cross_encoder,
+        query_prefix=config.retrieval.query_prefix,
+        embed_batch_size=config.retrieval.embed_batch_size,
+        max_seq_length=config.retrieval.max_seq_length,
+    )
+    if pipeline.degraded:
+        log.error("pipeline degraded (%s); refusing to mine", "; ".join(pipeline.degraded))
+        return 1
+
+    for split in ("train", "dev"):
+        path = config.paths.datasets / f"{split}.jsonl"
+        if not path.exists():
+            log.warning("no %s split at %s; skipping", split, path)
+            continue
+        examples = load_examples(path)
+        updated, counts = mine_retriever_negatives(
+            corpus, examples, pipeline, top_k=args.top_k, keep=args.keep
+        )
+        save_examples(path, updated)
+        log.info(
+            "%s: %d examples, %d negatives mined (%d with none, %d missing positive)",
+            split,
+            counts["examples"],
+            counts["negatives"],
+            counts["empty"],
+            counts["no_positive"],
+        )
     return 0
 
 
@@ -432,6 +498,18 @@ def build_parser() -> argparse.ArgumentParser:
     dataset_build.add_argument("--unanswerable", type=int, default=60)
     dataset_build.set_defaults(func=cmd_dataset_build)
 
+    mine = dataset_sub.add_parser(
+        "mine-negatives",
+        help="attach reranker negatives drawn from the fine-tuned retriever's own output",
+    )
+    mine.add_argument(
+        "--top-k", type=int, default=30, help="how deep into the retrieved list to look"
+    )
+    mine.add_argument(
+        "--keep", type=int, default=8, help="negatives kept per question, hardest first"
+    )
+    mine.set_defaults(func=cmd_dataset_mine_negatives)
+
     gold = subparsers.add_parser("gold", help="hand-written evaluation set")
     gold_sub = gold.add_subparsers(dest="gold_command", required=True)
     gold_resolve = gold_sub.add_parser("resolve", help="bind gold questions to chunk ids")
@@ -488,12 +566,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--negatives", type=int, default=4, help="mined same-family hard negatives per positive"
     )
     cross.add_argument(
+        "--retriever-negatives",
+        type=int,
+        default=6,
+        help="negatives per positive taken from what the fine-tuned bi-encoder actually "
+        "returns, via `kvrag dataset mine-negatives`. The dominant source, because it is "
+        "the only one that matches the candidates the reranker sees at inference.",
+    )
+    cross.add_argument(
         "--random-negatives",
         type=int,
-        default=4,
-        help="randomly sampled negatives per positive. Not optional in practice: without "
-        "them the reranker is uncalibrated on the unrelated chunks that dominate the "
-        "candidates it actually sees, and measurably makes retrieval worse.",
+        default=2,
+        help="uniformly sampled negatives per positive. A low-end anchor: retrieved "
+        "negatives are all plausible, and training only on those drifts the model toward "
+        "scoring everything relevant.",
     )
     cross.set_defaults(func=cmd_train_crossencoder)
 

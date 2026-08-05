@@ -5,23 +5,26 @@ passage into one vector *before* it sees the query, and two snapshots of the sam
 section differ by a handful of tokens, which rarely survives that compression. A
 cross-encoder reads both together, so a single contradicting sentence can dominate.
 
-**That argument is not sufficient, and this file exists partly to record why.** The
-first version trained here used only mined same-family hard negatives -- the reasoning
-being that positives and negatives from the same section force the model to learn the
-version signal rather than topic similarity. It learned exactly that, with a 19-point
-margin. Then it made end-to-end retrieval *three times worse*: nDCG@10 fell from 0.774
-to 0.233.
+**That argument is not sufficient, and this file exists partly to record why.** Where the
+negatives come from mattered more than the architecture did, and getting it wrong cost
+more than the reranker was ever going to gain. Three rounds, measured end to end:
 
-The reason is a train/serve distribution mismatch, and it is the kind that does not
-show up in training metrics at all. Every negative it had ever seen came from the same
-document section as the positive; at inference it must rank against the top-50 from
-dense retrieval, which are overwhelmingly other topics. It had no calibration there, so
-those scores were arbitrary rather than low -- and with 49 competitors per query, an
-occasional high score on an unrelated chunk is fatal.
+| negatives used                          | nDCG@10 |
+|-----------------------------------------|--------:|
+| no reranker (fine-tuned bi-encoder only) |   0.774 |
+| same-family wrong-version only           |   0.233 |
+| + uniformly sampled from the corpus      |   0.664 |
+| + mined from the fine-tuned retriever    |  see docs/RESULTS.md |
 
-The fix is in ``_build_pairs``: sample negatives from the whole corpus as well, so the
-model sees the population it will actually rank. Keep both kinds. They teach different
-things, and the mined ones alone are not enough.
+Each round failed the same way for a different reason: the negatives were drawn from a
+population the reranker does not meet at inference. Training loss and margin-vs-hard-
+negative both looked excellent every time. Neither can see this class of bug, because
+both are computed on the same skewed distribution the model was trained on.
+
+The third round stops guessing what that population is. ``dataset mine-negatives``
+retrieves with the *fine-tuned* bi-encoder under the serving version filter and keeps
+what comes back, so the training candidates are the serving candidates by construction.
+See ``dataset/mine_negatives.py`` for the measurements that forced each revision.
 """
 
 from __future__ import annotations
@@ -42,31 +45,39 @@ def _build_pairs(
     examples: Sequence[Example],
     negatives_per_positive: int,
     rng: random.Random,
-    random_negatives_per_positive: int = 4,
+    random_negatives_per_positive: int = 2,
+    retriever_negatives_per_positive: int = 6,
 ) -> tuple[list[dict[str, object]], dict[str, int]]:
-    """Build (query, passage, label) rows.
+    """Build (query, passage, label) rows from three negative sources.
 
-    **Two kinds of negative, and the second is not optional.** Training on mined
-    same-family hard negatives alone produces a reranker that is excellent at the task
-    it was shown and catastrophic at the task it is given.
+    They are not interchangeable, and the proportions are the result of measurement
+    rather than taste:
 
-    Measured on a version trained without random negatives: it separated correct from
-    wrong-version-same-section by 19 points (+8.9 vs -10.0), exactly as intended -- but
-    scored *unrelated* chunks at p90 +8.6, statistically tied with the positives. It had
-    simply never been asked about a passage from another document, so its scores there
-    were uncalibrated rather than low.
+    **Family negatives** -- the same section at a wrong version. These carry the version
+    signal the whole project is about. They are only ~2% of a retrieved top-50, far too
+    rare for the model to learn the distinction from retrieved candidates alone, which is
+    why they are mined separately and kept at full weight.
 
-    That is fatal at inference. The reranker sees the top-50 from dense retrieval, which
-    are mostly other topics. Beating a random chunk 92.5% of the time sounds strong until
-    there are 49 of them: 0.925^49 is about 2%. The measured effect was nDCG@10 falling
-    from 0.774 to 0.233 -- the reranker made retrieval three times worse.
+    **Retriever negatives** -- what the fine-tuned bi-encoder actually returns for this
+    question, under the serving version filter. The dominant source, because it *is* the
+    serving distribution. Two earlier versions of this function guessed at that
+    distribution instead and were wrong in two different ways; the second guess put 46%
+    of its ranking errors on sibling sections of the correct document, a population that
+    uniform sampling produces roughly never.
 
-    Random negatives fix the distribution mismatch by showing the model the population it
-    will actually rank against. They are easy negatives and teach nothing about versions;
-    the mined ones still carry that signal. Both are needed, for different reasons.
+    **Uniform negatives** -- kept, at reduced weight, as a floor. Retrieved negatives are
+    by definition all plausible; a model trained only on hard cases drifts toward scoring
+    everything highly, and these anchor the low end of the range.
     """
     rows: list[dict[str, object]] = []
-    counts = {"positives": 0, "negatives": 0, "random_negatives": 0, "skipped": 0}
+    counts = {
+        "positives": 0,
+        "negatives": 0,
+        "retriever_negatives": 0,
+        "random_negatives": 0,
+        "skipped": 0,
+        "missing_retriever_negatives": 0,
+    }
     all_chunks = list(corpus)
 
     for example in examples:
@@ -90,9 +101,19 @@ def _build_pairs(
             rows.append({"query": example.question, "passage": negative.embed_text(), "label": 0.0})
             counts["negatives"] += 1
 
-        # Sampled from the whole corpus, because that is what the top-50 from dense
-        # retrieval actually looks like. Anything in the same family is skipped so a
-        # legitimately relevant chunk is never mislabelled irrelevant.
+        retrieved = [
+            chunk
+            for chunk in (corpus.get(cid) for cid in example.retriever_negative_ids)
+            if chunk is not None and chunk.family_id != positive.family_id
+        ]
+        if not retrieved:
+            counts["missing_retriever_negatives"] += 1
+        # Kept in retrieval order rather than shuffled: the top of the list is what the
+        # reranker has to beat, so truncating takes the hardest ones.
+        for negative in retrieved[:retriever_negatives_per_positive]:
+            rows.append({"query": example.question, "passage": negative.embed_text(), "label": 0.0})
+            counts["retriever_negatives"] += 1
+
         drawn = attempts = 0
         budget = random_negatives_per_positive * 8
         while drawn < random_negatives_per_positive and attempts < budget:
@@ -120,7 +141,8 @@ def train_crossencoder(
     batch_size: int = 16,
     learning_rate: float = 2e-5,
     negatives_per_positive: int = 4,
-    random_negatives_per_positive: int = 4,
+    random_negatives_per_positive: int = 2,
+    retriever_negatives_per_positive: int = 6,
     warmup_ratio: float = 0.1,
     seed: int = 20260805,
     max_length: int = 512,
@@ -135,7 +157,12 @@ def train_crossencoder(
 
     rng = random.Random(seed)
     train_rows, counts = _build_pairs(
-        corpus, train_examples, negatives_per_positive, rng, random_negatives_per_positive
+        corpus,
+        train_examples,
+        negatives_per_positive,
+        rng,
+        random_negatives_per_positive,
+        retriever_negatives_per_positive,
     )
     if not train_rows:
         raise SystemExit(
@@ -143,24 +170,48 @@ def train_crossencoder(
             "the current corpus."
         )
     dev_rows, _ = _build_pairs(
-        corpus, dev_examples, negatives_per_positive, rng, random_negatives_per_positive
+        corpus,
+        dev_examples,
+        negatives_per_positive,
+        rng,
+        random_negatives_per_positive,
+        retriever_negatives_per_positive,
     )
 
     log.info(
-        "cross-encoder pairs: %d positive, %d mined-hard negative, %d random negative "
-        "(%d skipped), %d dev",
+        "cross-encoder pairs: %d positive, %d family negative, %d retriever negative, "
+        "%d random negative (%d skipped), %d dev",
         counts["positives"],
         counts["negatives"],
+        counts["retriever_negatives"],
         counts["random_negatives"],
         counts["skipped"],
         len(dev_rows),
     )
     log.info("device -- %s", describe_device())
-    if counts["negatives"] + counts["random_negatives"] < counts["positives"]:
+    # The failure this catches is silent: `dataset build` writes examples with no
+    # retriever negatives, so skipping `dataset mine-negatives` produces a smaller
+    # training set and a reranker trained on the wrong distribution, with no error.
+    if retriever_negatives_per_positive and counts["missing_retriever_negatives"]:
+        share = counts["missing_retriever_negatives"] / max(counts["positives"], 1)
+        message = (
+            f"{counts['missing_retriever_negatives']} of {counts['positives']} examples "
+            f"({share:.0%}) have no retriever-mined negatives. Run `kvrag train biencoder` "
+            "then `kvrag dataset mine-negatives` before training the reranker -- without "
+            "them it is trained on a distribution it will not see at inference, which "
+            "measured 0.664 nDCG@10 against 0.774 for no reranker at all."
+        )
+        if share > 0.5:
+            raise SystemExit(message)
+        log.warning("%s", message)
+    total_negatives = (
+        counts["negatives"] + counts["retriever_negatives"] + counts["random_negatives"]
+    )
+    if total_negatives < counts["positives"]:
         log.warning(
             "fewer negatives (%d) than positives (%d): the reranker will be biased "
             "toward scoring everything relevant. Check hard-negative mining.",
-            counts["negatives"] + counts["random_negatives"],
+            total_negatives,
             counts["positives"],
         )
 
@@ -178,7 +229,7 @@ def train_crossencoder(
     if counts["positives"]:
         import torch
 
-        ratio = (counts["negatives"] + counts["random_negatives"]) / counts["positives"]
+        ratio = total_negatives / counts["positives"]
         pos_weight = torch.tensor(max(ratio, 1.0))
         log.info("BCE pos_weight=%.2f", float(pos_weight))
     loss = BinaryCrossEntropyLoss(model, pos_weight=pos_weight)

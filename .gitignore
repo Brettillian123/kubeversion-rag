@@ -39,3 +39,7 @@ data/results/
 
 # Rendered Helm output, produced by validation runs.
 .rendered.yaml
+
+# Raw run logs. The numbers that matter are in docs/RESULTS.md and data/results/*.json;
+# these are stdout with tqdm control characters and HTTP chatter in them.
+data/*.log

@@ -43,8 +43,8 @@ Held-out test split, 1,811 questions, families disjoint from training:
 | Configuration | recall@1 | recall@10 | MRR@10 | nDCG@10 | version-correct@1 |
 |---|---:|---:|---:|---:|---:|
 | BM25, no version awareness | 0.168 | 0.554 | 0.287 | 0.351 | 0.632 |
-| Off-the-shelf bi-encoder, no version awareness | 0.151 | 0.574 | 0.282 | 0.352 | **0.523** |
-| Off-the-shelf bi-encoder + version filter | 0.340 | 0.703 | 0.456 | 0.516 | 1.000 |
+| Off-the-shelf bi-encoder, no version awareness | 0.155 | 0.585 | 0.290 | 0.361 | **0.518** |
+| Off-the-shelf bi-encoder + version filter | 0.351 | 0.704 | 0.465 | 0.523 | 1.000 |
 
 **An off-the-shelf dense retriever picks the wrong release's snapshot 48% of the time.**
 It is a coin flip, and it is *worse at this than BM25* — dense embeddings collapse two
@@ -56,8 +56,8 @@ The split by question type sharpens it. nDCG@10, same run:
 
 | Question type | BM25 | Dense | Dense + filter |
 |---|---:|---:|---:|
-| Changed documentation section | 0.346 | 0.352 | 0.513 |
-| Deprecation (API removed in release X) | 0.525 | **0.365** | 0.624 |
+| Changed documentation section | 0.346 | 0.361 | 0.520 |
+| Deprecation (API removed in release X) | 0.525 | **0.365** | 0.616 |
 | Deprecation boundary (asked *at* the removal version) | 0.783 | **0.533** | 0.839 |
 
 Dense retrieval is *worst exactly where the questions are most precisely
@@ -71,13 +71,56 @@ only returns chunks that cover the target, so ~1.0 is by construction). The hone
 reading is that it *sizes the problem* on the unfiltered rows. Among filtered rows the
 discriminating metric is nDCG@10 — that is what fine-tuning and reranking have to move.
 
-### Status
+## What fine-tuning bought
 
-The fine-tuned rows of the ablation are **not yet filled in**. The training code runs
-end-to-end (`scripts/smoke_train.py` exercises both paths), but a real fine-tune on
-13k examples wants a GPU for an afternoon and has not been done here. Until it is,
-`kvrag eval run --all` marks those rows ⚠️ *not actually fine-tuned* rather than
-quietly reporting base-model numbers under a fine-tuned label.
+Same test split, adding the trained models:
+
+| Configuration | recall@1 | recall@10 | MRR@10 | nDCG@10 |
+|---|---:|---:|---:|---:|
+| Off-the-shelf bi-encoder + version filter | 0.351 | 0.704 | 0.465 | 0.523 |
+| **Fine-tuned bi-encoder + version filter** | **0.593** | **0.964** | **0.714** | **0.774** |
+| … + fine-tuned cross-encoder reranker | 0.572 | 0.937 | 0.684 | 0.744 |
+
+**nDCG@10 0.523 → 0.774 on document families never seen in training**, from hard
+negatives mined out of the corpus's own structure with no LLM labelling anywhere. That
+last point is load-bearing: an LLM-labelled test set would make the evaluation circular.
+
+### And the reranker made it worse — three times, for three different reasons
+
+This is the part of the project worth reading, and it is in
+[`docs/RESULTS.md`](docs/RESULTS.md) in full.
+
+| Reranker trained on | nDCG@10 |
+|---|---:|
+| *(no reranker)* | **0.774** |
+| Same-family wrong-version negatives only | 0.233 |
+| … + uniformly sampled from the corpus | 0.664 |
+| … + mined from the fine-tuned retriever's own output | 0.744 |
+
+Every one of those trained cleanly — falling loss, and a 19-point margin between positives
+and the negatives it was shown. **No training-time metric can see this failure**, because
+all of them are computed on the same skewed distribution the model was trained on.
+
+The diagnosis took three rounds because the answer changed underneath it. Round 1's
+negatives were all from one document section, so the model had never scored an unrelated
+passage and its scores there were arbitrary rather than low — p90 +8.62 against positives
+at +8.88. Round 2 fixed that and still lost, so I measured a real top-50 instead of
+assuming one: **when the reranker demoted the correct chunk, the winner was a different
+section of the same document 45.7% of the time** — a population uniform sampling produces
+at roughly 0%, and the one an *improved* retriever concentrates. Fixing the bi-encoder had
+moved the reranker's serving distribution out from under it.
+
+Round 3 stops guessing: `kvrag dataset mine-negatives` retrieves with the fine-tuned
+bi-encoder under the serving version filter and trains on what comes back, so the training
+candidates are the serving candidates by construction. 50.6% of mined negatives now come
+from the same document. It recovered most of the loss and **still did not beat no reranker
+at all.**
+
+The conclusion is negative and it ships that way: after the bi-encoder fine-tune there is
+too little headroom left in the top-50 for a 6-layer cross-encoder to find, and the honest
+recommendation is to serve without it. On the 11 hand-written gold questions it *does* help
+(0.785 → 0.854) — reported, with the sample size stated plainly, rather than quietly
+dropped for pointing the wrong way.
 
 ## Quick start
 
@@ -107,11 +150,17 @@ card, not defaults picked by feel — see the note below:
 
 ```bash
 kvrag train biencoder --epochs 2 --batch-size 16 --max-seq-length 320
+kvrag dataset mine-negatives
 kvrag train crossencoder --epochs 2 --batch-size 32
 kvrag eval run --all --write-results
 ```
 
-Combined runtime on an RTX 4060 Laptop: **21 minutes** (14 + 7).
+The middle step is not optional and not cosmetic. It re-mines the reranker's training
+negatives from what the *fine-tuned* bi-encoder actually returns, because a reranker
+trained on any other distribution measurably makes retrieval worse — see
+[`docs/RESULTS.md`](docs/RESULTS.md). `kvrag train crossencoder` refuses to run if more
+than half the examples are missing mined negatives, rather than training a model that
+looks fine and serves badly.
 
 ### Why those numbers, and a warning about the obvious ones
 
@@ -170,11 +219,14 @@ migration`.
 ## Honest limitations
 
 - **Generated questions are templated.** They exercise version-sensitivity precisely,
-  but their phrasing is narrower than real user questions. The hand-written gold set
-  exists to keep the headline numbers honest; it is small.
+  but their phrasing is narrower than real user questions. The gold set checks this and
+  the fine-tune does generalize (nDCG@10 0.694 → 0.785 on human phrasing), but at
+  **11 answerable questions it is far too small to settle anything** — including the
+  reranker inversion it shows.
+- **The reranker's result is a single corpus, a single base model, and pointwise BCE.**
+  "This reranker does not pay for itself here" is supported; "cross-encoders don't help
+  at version-sensitive retrieval" is not, and is not claimed.
 - **Corpus is English docs only.** Localised trees are excluded.
-- **The fine-tuned rows are unmeasured.** Training runs, but has not been run for real.
-  The results page marks those rows rather than reporting base numbers under them.
 - **Embedding the corpus on CPU takes ~35 minutes** (23k chunks, bge-small). It is
   cached with a provenance sidecar, so it happens once per (model, corpus) pair.
   Training wants a GPU; everything else — ingest, retrieval, eval, serving — is CPU-only.

@@ -166,12 +166,18 @@ class Example:
 
     ``hard_negative_ids`` are same-family, wrong-version chunks. ``target_version`` is
     what the question is scoped to, and is what ``version-correct@1`` is judged against.
+
+    ``retriever_negative_ids`` are mined *after* the bi-encoder is fine-tuned, from what
+    that bi-encoder actually returns for this question. They are the only negatives that
+    reflect the serving distribution, and they exist because assuming that distribution
+    twice produced two different wrong answers -- see ``kvrag dataset mine-negatives``.
     """
 
     question: str
     target_version: MinorVersion
     positive_chunk_id: str
     hard_negative_ids: tuple[str, ...] = ()
+    retriever_negative_ids: tuple[str, ...] = ()
     family_id: str = ""
     source: str = "generated"
     # Set on questions the system is expected to refuse: the corpus contains no
@@ -186,6 +192,7 @@ class Example:
             "target_version": str(self.target_version),
             "positive_chunk_id": self.positive_chunk_id,
             "hard_negative_ids": list(self.hard_negative_ids),
+            "retriever_negative_ids": list(self.retriever_negative_ids),
             "family_id": self.family_id,
             "source": self.source,
             "unanswerable": self.unanswerable,
@@ -199,6 +206,7 @@ class Example:
             target_version=MinorVersion.parse(raw["target_version"]),
             positive_chunk_id=raw["positive_chunk_id"],
             hard_negative_ids=tuple(raw.get("hard_negative_ids", [])),
+            retriever_negative_ids=tuple(raw.get("retriever_negative_ids", [])),
             family_id=raw.get("family_id", ""),
             source=raw.get("source", "generated"),
             unanswerable=bool(raw.get("unanswerable", False)),

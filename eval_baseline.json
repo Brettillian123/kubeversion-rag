@@ -5,13 +5,13 @@
     "version_correct@1": 0.632
   },
   "dense_offtheshelf": {
-    "recall@10": 0.574,
-    "ndcg@10": 0.352,
-    "version_correct@1": 0.523
+    "recall@10": 0.585,
+    "ndcg@10": 0.361,
+    "version_correct@1": 0.518
   },
   "dense_filtered": {
-    "recall@10": 0.703,
-    "ndcg@10": 0.516,
+    "recall@10": 0.704,
+    "ndcg@10": 0.523,
     "version_correct@1": 1.0
   }
 }

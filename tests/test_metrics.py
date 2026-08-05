@@ -107,3 +107,63 @@ class TestMarkdownTable:
         # like one generated after it -- a fabricated result.
         rows = [EvalResult("ft", "Fine-tuned", 10, {"ndcg@10": 0.5}, degraded=["fell back"])]
         assert "not actually fine-tuned" in markdown_table(rows, columns=["ndcg@10"])
+
+
+class TestRoundTrip:
+    """Stored results have to survive the trip back, so tables can be re-rendered.
+
+    Some ablation rows cost half an hour of GPU time. Re-running them because the
+    markdown needed a column is the kind of waste that quietly discourages fixing the
+    markdown at all.
+    """
+
+    def test_eval_result_survives_a_round_trip(self):
+        original = EvalResult(
+            "dense_ft_filtered",
+            "Fine-tuned bi-encoder + version filter",
+            1811,
+            {"ndcg@10": 0.774, "recall@1": 0.593},
+            by_source={"deprecation": {"ndcg@10": 0.744}},
+            degraded=["cross-encoder fell back"],
+        )
+        restored = EvalResult.from_dict(original.to_dict())
+        assert restored == original
+
+    def test_eval_run_survives_a_round_trip(self, tmp_path):
+        import json
+
+        from kubeversion_rag.eval.run import EvalRun
+
+        run = EvalRun(
+            results=[EvalResult("bm25", "BM25", 10, {"ndcg@10": 0.351})],
+            question_set="test",
+            n_chunks=23018,
+            generated_at="2026-08-05T18:20:59+00:00",
+        )
+        path = tmp_path / "ablation__test.json"
+        path.write_text(json.dumps(run.to_dict()), encoding="utf-8")
+        assert EvalRun.load(path) == run
+
+
+class TestGeneratedDocsStayOutOfTheHandWrittenOne:
+    def test_the_writer_never_targets_docs_results_md(self):
+        # docs/RESULTS.md carries the analysis of *why* the numbers came out this way,
+        # which no generator can reproduce. Pointing the generator at it meant running
+        # `eval run --split gold --write-results` silently replaced the test-split
+        # table and every word of prose around it.
+        import ast
+        from pathlib import Path
+
+        source = (
+            Path(__file__).resolve().parents[1] / "src" / "kubeversion_rag" / "cli.py"
+        ).read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        literals = [
+            node.value
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        ]
+        assert "RESULTS.md" not in literals, (
+            "cli.py names RESULTS.md as an output path again; generated tables belong "
+            "under docs/results/ so the hand-written analysis survives an eval run"
+        )

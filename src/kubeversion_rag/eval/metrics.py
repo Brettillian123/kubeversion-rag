@@ -16,6 +16,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from statistics import mean
+from typing import Any
 
 from ..models import Chunk
 from ..versions import MinorVersion
@@ -130,6 +131,18 @@ class EvalResult:
             "refusal_rate": self.refusal_rate,
             "degraded": self.degraded,
         }
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> EvalResult:
+        return cls(
+            config_name=raw["config"],
+            description=raw.get("description", ""),
+            n_queries=int(raw.get("n_queries", 0)),
+            metrics=dict(raw.get("metrics", {})),
+            by_source=dict(raw.get("by_source", {})),
+            refusal_rate=raw.get("refusal_rate"),
+            degraded=list(raw.get("degraded", [])),
+        )
 
 
 def aggregate(

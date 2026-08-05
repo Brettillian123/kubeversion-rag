@@ -1,8 +1,13 @@
 """Run the ablation.
 
 One question set, N pipeline configurations, identical inputs and identical metric code
-for every row. The output is `docs/RESULTS.md` plus a machine-readable
-`data/results/*.json` so CI can gate on a number rather than on a human reading a table.
+for every row. The output is a generated table under `docs/results/` plus a
+machine-readable `data/results/*.json` so CI can gate on a number rather than on a human
+reading a table.
+
+Nothing here writes `docs/RESULTS.md`. That file is the hand-written analysis and it has
+to stay hand-written: it explains why the numbers came out the way they did, which is not
+derivable from the numbers.
 """
 
 from __future__ import annotations
@@ -38,6 +43,25 @@ class EvalRun:
             "n_chunks": self.n_chunks,
             "results": [result.to_dict() for result in self.results],
         }
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, object]) -> EvalRun:
+        """Rebuild a run from its stored JSON.
+
+        Exists so the generated tables can be re-rendered without re-running the
+        evaluation. Some rows cost half an hour of GPU time; a formatting change to the
+        markdown should not be a reason to spend it again.
+        """
+        return cls(
+            results=[EvalResult.from_dict(row) for row in raw.get("results", [])],
+            question_set=str(raw.get("question_set", "unknown")),
+            n_chunks=int(raw.get("n_chunks", 0)),
+            generated_at=str(raw.get("generated_at", "")),
+        )
+
+    @classmethod
+    def load(cls, path: Path) -> EvalRun:
+        return cls.from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 
 def evaluate_pipeline(

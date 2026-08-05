@@ -6,8 +6,15 @@ section differ in a handful of tokens, and that difference has to survive the
 compression to be usable. A cross-encoder reads the query and passage jointly, so a
 single contradicting sentence can dominate the score.
 
-This is where most of the measured gain comes from, and it is only affordable because
-it runs on the top-50 from recall rather than the whole corpus.
+That argument is sound and it is *not* where most of the measured gain came from — the
+fine-tuned bi-encoder is, by a wide margin. The reranker turned out to be the most
+fragile component in the stack rather than the most valuable one: what it is trained
+against matters more than the architecture, and getting that wrong made retrieval worse
+than having no reranker at all. `docs/RESULTS.md § What the reranker cost` has the
+numbers; `dataset/mine_negatives.py` has the diagnosis.
+
+It is only affordable at all because it runs on the top-50 from recall rather than the
+whole corpus.
 """
 
 from __future__ import annotations
