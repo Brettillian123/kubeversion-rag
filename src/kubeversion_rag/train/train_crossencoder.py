@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ..models import Corpus, Example
-from . import warmup_kwargs
+from . import describe_device, device_kwargs, warmup_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +96,7 @@ def train_crossencoder(
         counts["skipped"],
         len(dev_rows),
     )
+    log.info("device -- %s", describe_device())
     if counts["negatives"] < counts["positives"]:
         log.warning(
             "fewer negatives (%d) than positives (%d): the reranker will be biased "
@@ -124,6 +125,7 @@ def train_crossencoder(
         per_device_train_batch_size=batch_size,
         learning_rate=learning_rate,
         **warmup_kwargs(warmup_ratio),
+        **device_kwargs(),
         eval_strategy="epoch" if dev_rows else "no",
         save_strategy="epoch",
         save_total_limit=1,

@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ..models import Corpus, Example
-from . import warmup_kwargs
+from . import describe_device, device_kwargs, warmup_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -138,6 +138,7 @@ def train_biencoder(
             "negative. Re-run `kvrag dataset build` against the current corpus."
         )
     log.info("training on %d triplets from %d examples", len(rows), len(train_examples))
+    log.info("device -- %s", describe_device())
 
     dataset = Dataset.from_list(rows)
     model = SentenceTransformer(base_model)
@@ -151,6 +152,7 @@ def train_biencoder(
         per_device_train_batch_size=batch_size,
         learning_rate=learning_rate,
         **warmup_kwargs(warmup_ratio),
+        **device_kwargs(),
         # MNRL's negatives are the rest of the batch, so a batch containing two
         # near-duplicate rows creates a false negative -- the model is punished for
         # ranking a correct passage highly. Dropping the ragged last batch also keeps
